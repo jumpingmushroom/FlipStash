@@ -1,6 +1,7 @@
 import React from 'react';
+import { convertFromUSD, formatCurrency } from '../services/currency';
 
-function GameCard({ game, onEdit, onDelete, onRefreshMarket }) {
+function GameCard({ game, currency = 'USD', onEdit, onDelete, onRefreshMarket }) {
   const calculateProfit = () => {
     if (game.sold_value && game.purchase_value) {
       return game.sold_value - game.purchase_value;
@@ -32,28 +33,28 @@ function GameCard({ game, onEdit, onDelete, onRefreshMarket }) {
         {game.purchase_value !== null && (
           <div className="detail-item">
             <span className="detail-label">Purchase</span>
-            <span className="detail-value">${game.purchase_value}</span>
+            <span className="detail-value">{formatCurrency(convertFromUSD(game.purchase_value, currency), currency)}</span>
           </div>
         )}
 
         {game.market_value !== null && (
           <div className="detail-item">
             <span className="detail-label">Market</span>
-            <span className="detail-value">${game.market_value}</span>
+            <span className="detail-value">{formatCurrency(convertFromUSD(game.market_value, currency), currency)}</span>
           </div>
         )}
 
         {game.selling_value !== null && (
           <div className="detail-item">
             <span className="detail-label">Selling</span>
-            <span className="detail-value">${game.selling_value}</span>
+            <span className="detail-value">{formatCurrency(convertFromUSD(game.selling_value, currency), currency)}</span>
           </div>
         )}
 
         {game.sold_value !== null && (
           <div className="detail-item">
             <span className="detail-label">Sold For</span>
-            <span className="detail-value">${game.sold_value}</span>
+            <span className="detail-value">{formatCurrency(convertFromUSD(game.sold_value, currency), currency)}</span>
           </div>
         )}
 
@@ -61,7 +62,7 @@ function GameCard({ game, onEdit, onDelete, onRefreshMarket }) {
           <div className="detail-item">
             <span className="detail-label">Profit/Loss</span>
             <span className={`detail-value ${profit >= 0 ? 'positive' : 'negative'}`}>
-              {profit >= 0 ? '+' : ''}${profit.toFixed(2)}
+              {profit >= 0 ? '+' : ''}{formatCurrency(convertFromUSD(Math.abs(profit), currency), currency)}
             </span>
           </div>
         )}
