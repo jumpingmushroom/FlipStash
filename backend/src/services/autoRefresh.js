@@ -63,6 +63,8 @@ export async function refreshAllUnsoldGames() {
           statements.updateMarketValue.run(
             marketData.market_value,
             marketData.selling_value,
+            marketData.currency,
+            marketData.currency,
             game.id
           );
 
@@ -70,18 +72,16 @@ export async function refreshAllUnsoldGames() {
           let source = 'manual';
           const { pricecharting, finnno } = marketData.sources;
 
-          if (pricecharting !== null && finnno !== null) {
-            source = 'average';
+          if (finnno !== null) {
+            source = 'finn';
           } else if (pricecharting !== null) {
             source = 'pricecharting';
-          } else if (finnno !== null) {
-            source = 'finn';
           }
 
           // Record price history
           recordPriceHistory(game.id, marketData.market_value, source);
 
-          console.log(`✓ Successfully updated ${game.name}: $${marketData.market_value} (${source})`);
+          console.log(`✓ Successfully updated ${game.name}: ${marketData.market_value} ${marketData.currency} (${source})`);
           successCount++;
         } else {
           console.log(`✗ No market data found for ${game.name}`);
