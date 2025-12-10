@@ -33,6 +33,24 @@ db.exec(`
   )
 `);
 
+// Migration: Add created_at and updated_at columns if they don't exist
+try {
+  const tableInfo = db.prepare("PRAGMA table_info(games)").all();
+  const columns = tableInfo.map(col => col.name);
+
+  if (!columns.includes('created_at')) {
+    console.log('Migrating database: Adding created_at column');
+    db.exec(`ALTER TABLE games ADD COLUMN created_at TEXT DEFAULT CURRENT_TIMESTAMP`);
+  }
+
+  if (!columns.includes('updated_at')) {
+    console.log('Migrating database: Adding updated_at column');
+    db.exec(`ALTER TABLE games ADD COLUMN updated_at TEXT DEFAULT CURRENT_TIMESTAMP`);
+  }
+} catch (error) {
+  console.error('Migration error:', error.message);
+}
+
 // Create index for faster queries
 db.exec(`
   CREATE INDEX IF NOT EXISTS idx_games_platform ON games(platform);
