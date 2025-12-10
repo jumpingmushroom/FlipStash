@@ -1,6 +1,101 @@
 import React, { useState, useEffect } from 'react';
 import { gamesApi } from '../services/api';
 
+// Common gaming platforms
+const PLATFORMS = [
+  'PlayStation 5',
+  'PlayStation 4',
+  'PlayStation 3',
+  'PlayStation 2',
+  'PlayStation 1',
+  'PS Vita',
+  'PSP',
+  'Xbox Series X/S',
+  'Xbox One',
+  'Xbox 360',
+  'Xbox',
+  'Nintendo Switch',
+  'Nintendo Wii U',
+  'Nintendo Wii',
+  'Nintendo GameCube',
+  'Nintendo 64',
+  'Super Nintendo (SNES)',
+  'Nintendo Entertainment System (NES)',
+  'Nintendo 3DS',
+  'Nintendo DS',
+  'Game Boy Advance',
+  'Game Boy Color',
+  'Game Boy',
+  'Sega Genesis',
+  'Sega Dreamcast',
+  'Sega Saturn',
+  'PC',
+  'Other'
+];
+
+// Map IGDB platform names to our platform list
+const normalizePlatform = (igdbPlatform) => {
+  const platformMap = {
+    'PlayStation 5': 'PlayStation 5',
+    'PS5': 'PlayStation 5',
+    'PlayStation 4': 'PlayStation 4',
+    'PS4': 'PlayStation 4',
+    'PlayStation 3': 'PlayStation 3',
+    'PS3': 'PlayStation 3',
+    'PlayStation 2': 'PlayStation 2',
+    'PS2': 'PlayStation 2',
+    'PlayStation': 'PlayStation 1',
+    'PS1': 'PlayStation 1',
+    'PSX': 'PlayStation 1',
+    'PlayStation Vita': 'PS Vita',
+    'PS Vita': 'PS Vita',
+    'PSP': 'PSP',
+    'Xbox Series X|S': 'Xbox Series X/S',
+    'Xbox Series S/X': 'Xbox Series X/S',
+    'Xbox One': 'Xbox One',
+    'Xbox 360': 'Xbox 360',
+    'Xbox': 'Xbox',
+    'Nintendo Switch': 'Nintendo Switch',
+    'Switch': 'Nintendo Switch',
+    'Wii U': 'Nintendo Wii U',
+    'Wii': 'Nintendo Wii',
+    'GameCube': 'Nintendo GameCube',
+    'Nintendo GameCube': 'Nintendo GameCube',
+    'Nintendo 64': 'Nintendo 64',
+    'N64': 'Nintendo 64',
+    'Super Nintendo Entertainment System': 'Super Nintendo (SNES)',
+    'Super Famicom': 'Super Nintendo (SNES)',
+    'SNES': 'Super Nintendo (SNES)',
+    'Nintendo Entertainment System': 'Nintendo Entertainment System (NES)',
+    'NES': 'Nintendo Entertainment System (NES)',
+    'Famicom': 'Nintendo Entertainment System (NES)',
+    'Nintendo 3DS': 'Nintendo 3DS',
+    '3DS': 'Nintendo 3DS',
+    'Nintendo DS': 'Nintendo DS',
+    'DS': 'Nintendo DS',
+    'Game Boy Advance': 'Game Boy Advance',
+    'GBA': 'Game Boy Advance',
+    'Game Boy Color': 'Game Boy Color',
+    'GBC': 'Game Boy Color',
+    'Game Boy': 'Game Boy',
+    'GB': 'Game Boy',
+    'Sega Mega Drive/Genesis': 'Sega Genesis',
+    'Genesis': 'Sega Genesis',
+    'Mega Drive': 'Sega Genesis',
+    'Dreamcast': 'Sega Dreamcast',
+    'Sega Dreamcast': 'Sega Dreamcast',
+    'Sega Saturn': 'Sega Saturn',
+    'Saturn': 'Sega Saturn',
+    'PC (Microsoft Windows)': 'PC',
+    'PC': 'PC',
+    'Windows': 'PC',
+    'Mac': 'PC',
+    'Linux': 'PC'
+  };
+
+  return platformMap[igdbPlatform] || 'Other';
+};
+
 function GameForm({ game, onClose, onSave }) {
   const [formData, setFormData] = useState({
     name: '',
@@ -23,6 +118,7 @@ function GameForm({ game, onClose, onSave }) {
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isFetchingMarketValue, setIsFetchingMarketValue] = useState(false);
 
   useEffect(() => {
     if (game) {
@@ -80,9 +176,16 @@ function GameForm({ game, onClose, onSave }) {
   };
 
   const selectIGDBGame = (igdbGame) => {
+    // Extract primary platform from IGDB result
+    const primaryPlatform = igdbGame.platforms
+      ? igdbGame.platforms.split(',')[0].trim()
+      : '';
+    const normalizedPlatform = normalizePlatform(primaryPlatform);
+
     setFormData(prev => ({
       ...prev,
       name: igdbGame.name,
+      platform: normalizedPlatform,
       igdb_id: igdbGame.id,
       igdb_cover_url: igdbGame.coverUrl || '',
       igdb_release_date: igdbGame.releaseDate || ''
@@ -110,7 +213,20 @@ function GameForm({ game, onClose, onSave }) {
       if (game) {
         await gamesApi.update(game.id, dataToSubmit);
       } else {
-        await gamesApi.create(dataToSubmit);
+        // Create new game
+        const response = await gamesApi.create(dataToSubmit);
+        const newGameId = response.data.id;
+
+        // Auto-fetch market value for new games
+        setIsFetchingMarketValue(true);
+        try {
+          await gamesApi.refreshMarketValue(newGameId);
+        } catch (marketErr) {
+          // Don't fail the whole operation if market value fetch fails
+          console.warn('Failed to fetch initial market value:', marketErr);
+        } finally {
+          setIsFetchingMarketValue(false);
+        }
       }
 
       onSave();
@@ -200,15 +316,20 @@ function GameForm({ game, onClose, onSave }) {
 
           <div className="form-group">
             <label className="form-label">Platform *</label>
-            <input
-              type="text"
+            <select
               name="platform"
-              className="form-input"
+              className="form-select"
               value={formData.platform}
               onChange={handleChange}
-              placeholder="e.g., PS5, Nintendo Switch, Xbox Series X"
               required
-            />
+            >
+              <option value="">Select a platform</option>
+              {PLATFORMS.map(platform => (
+                <option key={platform} value={platform}>
+                  {platform}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="form-row">
@@ -316,11 +437,11 @@ function GameForm({ game, onClose, onSave }) {
           </div>
 
           <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
-            <button type="button" onClick={onClose} className="btn btn-secondary">
+            <button type="button" onClick={onClose} className="btn btn-secondary" disabled={isSubmitting || isFetchingMarketValue}>
               Cancel
             </button>
-            <button type="submit" disabled={isSubmitting} className="btn btn-primary">
-              {isSubmitting ? 'Saving...' : (game ? 'Update Game' : 'Add Game')}
+            <button type="submit" disabled={isSubmitting || isFetchingMarketValue} className="btn btn-primary">
+              {isFetchingMarketValue ? 'Fetching market value...' : (isSubmitting ? 'Saving...' : (game ? 'Update Game' : 'Add Game'))}
             </button>
           </div>
         </form>
