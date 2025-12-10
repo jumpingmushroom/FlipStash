@@ -47,6 +47,27 @@ try {
     console.log('Migrating database: Adding updated_at column');
     db.exec(`ALTER TABLE games ADD COLUMN updated_at TEXT DEFAULT CURRENT_TIMESTAMP`);
   }
+
+  // Migration: Add currency tracking columns
+  if (!columns.includes('purchase_value_currency')) {
+    console.log('Migrating database: Adding purchase_value_currency column');
+    db.exec(`ALTER TABLE games ADD COLUMN purchase_value_currency TEXT DEFAULT 'USD'`);
+  }
+
+  if (!columns.includes('market_value_currency')) {
+    console.log('Migrating database: Adding market_value_currency column');
+    db.exec(`ALTER TABLE games ADD COLUMN market_value_currency TEXT DEFAULT 'USD'`);
+  }
+
+  if (!columns.includes('selling_value_currency')) {
+    console.log('Migrating database: Adding selling_value_currency column');
+    db.exec(`ALTER TABLE games ADD COLUMN selling_value_currency TEXT DEFAULT 'USD'`);
+  }
+
+  if (!columns.includes('sold_value_currency')) {
+    console.log('Migrating database: Adding sold_value_currency column');
+    db.exec(`ALTER TABLE games ADD COLUMN sold_value_currency TEXT DEFAULT 'USD'`);
+  }
 } catch (error) {
   console.error('Migration error:', error.message);
 }
@@ -71,8 +92,9 @@ export const statements = {
     INSERT INTO games (
       name, platform, purchase_value, market_value, selling_value, sold_value,
       purchase_date, sale_date, condition, notes,
-      igdb_id, igdb_cover_url, igdb_release_date
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      igdb_id, igdb_cover_url, igdb_release_date,
+      purchase_value_currency, market_value_currency, selling_value_currency, sold_value_currency
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `),
 
   updateGame: db.prepare(`
@@ -80,13 +102,17 @@ export const statements = {
       name = ?, platform = ?, purchase_value = ?, market_value = ?,
       selling_value = ?, sold_value = ?, purchase_date = ?, sale_date = ?,
       condition = ?, notes = ?, igdb_id = ?, igdb_cover_url = ?,
-      igdb_release_date = ?, updated_at = CURRENT_TIMESTAMP
+      igdb_release_date = ?,
+      purchase_value_currency = ?, market_value_currency = ?, selling_value_currency = ?, sold_value_currency = ?,
+      updated_at = CURRENT_TIMESTAMP
     WHERE id = ?
   `),
 
   updateMarketValue: db.prepare(`
     UPDATE games SET
-      market_value = ?, selling_value = ?, updated_at = CURRENT_TIMESTAMP
+      market_value = ?, selling_value = ?,
+      market_value_currency = 'USD', selling_value_currency = 'USD',
+      updated_at = CURRENT_TIMESTAMP
     WHERE id = ?
   `),
 
