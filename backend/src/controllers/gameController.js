@@ -1,6 +1,7 @@
 import { statements } from '../db/index.js';
 import { searchGames as igdbSearch, getGameDetails } from '../services/igdb.js';
 import { getMarketValue } from '../services/scraper.js';
+import { recordPriceHistory } from '../services/priceHistory.js';
 
 /**
  * Get all games
@@ -69,6 +70,12 @@ export async function createGame(req, res) {
     );
 
     const newGame = statements.getGameById.get(result.lastInsertRowid);
+
+    // Record initial price history if market value is provided
+    if (market_value) {
+      recordPriceHistory(newGame.id, market_value, 'manual');
+    }
+
     res.status(201).json(newGame);
   } catch (error) {
     console.error('Error creating game:', error);
@@ -93,6 +100,12 @@ export async function updateGame(req, res) {
       return res.status(400).json({ error: 'Name and platform are required' });
     }
 
+    // Get current game to check if market value changed
+    const currentGame = statements.getGameById.get(req.params.id);
+    if (!currentGame) {
+      return res.status(404).json({ error: 'Game not found' });
+    }
+
     statements.updateGame.run(
       name, platform,
       purchase_value || null,
@@ -114,11 +127,12 @@ export async function updateGame(req, res) {
       req.params.id
     );
 
-    const updatedGame = statements.getGameById.get(req.params.id);
-    if (!updatedGame) {
-      return res.status(404).json({ error: 'Game not found' });
+    // Record price history if market value changed
+    if (market_value && market_value !== currentGame.market_value) {
+      recordPriceHistory(req.params.id, market_value, 'manual');
     }
 
+    const updatedGame = statements.getGameById.get(req.params.id);
     res.json(updatedGame);
   } catch (error) {
     console.error('Error updating game:', error);
@@ -180,6 +194,21 @@ export async function refreshMarketValue(req, res) {
         marketData.selling_value,
         req.params.id
       );
+
+      // Determine the source for price history
+      let source = 'manual';
+      const { pricecharting, finnno } = marketData.sources;
+
+      if (pricecharting !== null && finnno !== null) {
+        source = 'average';
+      } else if (pricecharting !== null) {
+        source = 'pricecharting';
+      } else if (finnno !== null) {
+        source = 'finn';
+      }
+
+      // Record price history
+      recordPriceHistory(req.params.id, marketData.market_value, source);
 
       const updatedGame = statements.getGameById.get(req.params.id);
       res.json({

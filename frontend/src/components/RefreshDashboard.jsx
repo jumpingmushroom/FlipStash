@@ -1,0 +1,201 @@
+import { useState, useEffect } from 'react';
+import api from '../services/api';
+import PriceChart from './PriceChart';
+
+export default function RefreshDashboard() {
+  const [dashboard, setDashboard] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [selectedGame, setSelectedGame] = useState(null);
+  const [sortBy, setSortBy] = useState('last_refresh'); // last_refresh, name, price_change
+
+  useEffect(() => {
+    fetchDashboard();
+  }, []);
+
+  const fetchDashboard = async () => {
+    try {
+      setLoading(true);
+      const response = await api.get('/games/refresh-dashboard');
+      setDashboard(response.data);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching dashboard:', err);
+      setError('Failed to load refresh dashboard');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getSortedGames = () => {
+    if (!dashboard?.games) return [];
+
+    const games = [...dashboard.games];
+
+    switch (sortBy) {
+      case 'last_refresh':
+        return games.sort((a, b) => {
+          if (!a.last_refresh_at && !b.last_refresh_at) return 0;
+          if (!a.last_refresh_at) return 1;
+          if (!b.last_refresh_at) return -1;
+          return new Date(b.last_refresh_at) - new Date(a.last_refresh_at);
+        });
+      case 'name':
+        return games.sort((a, b) => a.name.localeCompare(b.name));
+      case 'price_change':
+        return games.sort((a, b) => {
+          const changeA = a.price_change_percentage || 0;
+          const changeB = b.price_change_percentage || 0;
+          return changeB - changeA;
+        });
+      default:
+        return games;
+    }
+  };
+
+  const getRefreshStatus = (game) => {
+    if (!game.last_refresh_at) {
+      return { text: 'Never refreshed', class: 'status-warning' };
+    }
+
+    const lastRefresh = new Date(game.last_refresh_at);
+    const now = new Date();
+    const hoursSince = (now - lastRefresh) / (1000 * 60 * 60);
+
+    if (hoursSince < 24) {
+      return { text: 'Up to date', class: 'status-success' };
+    } else if (hoursSince < 72) {
+      return { text: 'Recent', class: 'status-info' };
+    } else {
+      return { text: 'Needs update', class: 'status-warning' };
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="dashboard-container">
+        <div className="loading">Loading refresh dashboard...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="dashboard-container">
+        <div className="error">{error}</div>
+      </div>
+    );
+  }
+
+  const sortedGames = getSortedGames();
+
+  return (
+    <div className="dashboard-container">
+      <div className="dashboard-header">
+        <h1>Market Value Refresh Dashboard</h1>
+        <p className="dashboard-subtitle">
+          Overview of automated market value tracking for {dashboard?.total_games || 0} unsold games
+        </p>
+      </div>
+
+      <div className="dashboard-controls">
+        <div className="sort-controls">
+          <label>Sort by:</label>
+          <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+            <option value="last_refresh">Last Refresh</option>
+            <option value="name">Name</option>
+            <option value="price_change">Price Change</option>
+          </select>
+        </div>
+        <button onClick={fetchDashboard} className="btn btn-secondary">
+          Refresh Data
+        </button>
+      </div>
+
+      <div className="dashboard-grid">
+        {sortedGames.map((game) => {
+          const status = getRefreshStatus(game);
+          const hasPriceData = game.price_change_percentage !== null;
+
+          return (
+            <div key={game.id} className="dashboard-card">
+              <div className="dashboard-card-header">
+                {game.igdb_cover_url ? (
+                  <img src={game.igdb_cover_url} alt={game.name} className="dashboard-cover" />
+                ) : (
+                  <div className="dashboard-cover-placeholder">🎮</div>
+                )}
+                <div className="dashboard-game-info">
+                  <h3 className="dashboard-game-title">{game.name}</h3>
+                  <span className="dashboard-game-platform">{game.platform}</span>
+                </div>
+              </div>
+
+              <div className="dashboard-card-body">
+                <div className="dashboard-value-row">
+                  <span className="dashboard-label">Current Value:</span>
+                  <span className="dashboard-value">
+                    ${game.market_value?.toFixed(2) || 'N/A'}
+                  </span>
+                </div>
+
+                {hasPriceData && (
+                  <div className="dashboard-value-row">
+                    <span className="dashboard-label">Price Change:</span>
+                    <span className={`dashboard-value ${game.price_change >= 0 ? 'positive' : 'negative'}`}>
+                      {game.price_change >= 0 ? '+' : ''}${game.price_change.toFixed(2)}
+                      {' '}
+                      ({game.price_change_percentage >= 0 ? '+' : ''}{game.price_change_percentage.toFixed(2)}%)
+                    </span>
+                  </div>
+                )}
+
+                <div className="dashboard-refresh-info">
+                  <span className={`refresh-status ${status.class}`}>
+                    {status.text}
+                  </span>
+                  {game.last_refresh_at && (
+                    <span className="refresh-time">
+                      {new Date(game.last_refresh_at).toLocaleString()}
+                    </span>
+                  )}
+                </div>
+
+                {game.market_value && (
+                  <div className="dashboard-mini-chart">
+                    <PriceChart gameId={game.id} mode="mini" />
+                  </div>
+                )}
+              </div>
+
+              <div className="dashboard-card-footer">
+                <button
+                  onClick={() => setSelectedGame(game)}
+                  className="btn-link"
+                >
+                  View Detailed History →
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {sortedGames.length === 0 && (
+        <div className="empty-state">
+          <p>No unsold games to display</p>
+          <p className="empty-state-subtitle">Add some games to start tracking market values</p>
+        </div>
+      )}
+
+      {/* Detailed Price History Modal */}
+      {selectedGame && (
+        <PriceChart
+          gameId={selectedGame.id}
+          mode="detailed"
+          onClose={() => setSelectedGame(null)}
+        />
+      )}
+    </div>
+  );
+}

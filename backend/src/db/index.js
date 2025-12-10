@@ -74,14 +74,34 @@ try {
     console.log('Migrating database: Adding posted_online column');
     db.exec(`ALTER TABLE games ADD COLUMN posted_online INTEGER DEFAULT 0`);
   }
+
+  // Migration: Add last_refresh_at column
+  if (!columns.includes('last_refresh_at')) {
+    console.log('Migrating database: Adding last_refresh_at column');
+    db.exec(`ALTER TABLE games ADD COLUMN last_refresh_at TEXT`);
+  }
 } catch (error) {
   console.error('Migration error:', error.message);
 }
+
+// Create price_history table
+db.exec(`
+  CREATE TABLE IF NOT EXISTS price_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    game_id INTEGER NOT NULL,
+    market_value REAL NOT NULL,
+    source TEXT NOT NULL,
+    recorded_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
+  )
+`);
 
 // Create index for faster queries
 db.exec(`
   CREATE INDEX IF NOT EXISTS idx_games_platform ON games(platform);
   CREATE INDEX IF NOT EXISTS idx_games_name ON games(name);
+  CREATE INDEX IF NOT EXISTS idx_price_history_game_id ON price_history(game_id);
+  CREATE INDEX IF NOT EXISTS idx_price_history_recorded_at ON price_history(recorded_at);
 `);
 
 // Prepared statements for CRUD operations
@@ -120,12 +140,57 @@ export const statements = {
     UPDATE games SET
       market_value = ?, selling_value = ?,
       market_value_currency = 'USD', selling_value_currency = 'USD',
+      last_refresh_at = CURRENT_TIMESTAMP,
       updated_at = CURRENT_TIMESTAMP
     WHERE id = ?
   `),
 
   deleteGame: db.prepare(`
     DELETE FROM games WHERE id = ?
+  `),
+
+  // Price history statements
+  insertPriceHistory: db.prepare(`
+    INSERT INTO price_history (game_id, market_value, source)
+    VALUES (?, ?, ?)
+  `),
+
+  getPriceHistory: db.prepare(`
+    SELECT * FROM price_history
+    WHERE game_id = ?
+    ORDER BY recorded_at ASC
+  `),
+
+  getPriceHistoryByDateRange: db.prepare(`
+    SELECT * FROM price_history
+    WHERE game_id = ? AND recorded_at >= ?
+    ORDER BY recorded_at ASC
+  `),
+
+  getLatestPriceHistory: db.prepare(`
+    SELECT * FROM price_history
+    WHERE game_id = ?
+    ORDER BY recorded_at DESC
+    LIMIT 1
+  `),
+
+  getAllGamesWithLastRefresh: db.prepare(`
+    SELECT
+      g.*,
+      ph.market_value as latest_historical_value,
+      ph.recorded_at as latest_history_recorded_at
+    FROM games g
+    LEFT JOIN (
+      SELECT game_id, market_value, recorded_at
+      FROM price_history ph1
+      WHERE recorded_at = (
+        SELECT MAX(recorded_at)
+        FROM price_history ph2
+        WHERE ph2.game_id = ph1.game_id
+      )
+    ) ph ON g.id = ph.game_id
+    WHERE g.sold_value IS NULL
+    ORDER BY g.created_at DESC
   `)
 };
 

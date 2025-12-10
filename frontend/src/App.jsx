@@ -3,6 +3,7 @@ import GameCard from './components/GameCard';
 import GameForm from './components/GameForm';
 import Settings from './components/Settings';
 import Statistics from './components/Statistics';
+import RefreshDashboard from './components/RefreshDashboard';
 import { gamesApi } from './services/api';
 import { loadCurrencyPreference, saveCurrencyPreference, convertCurrency, formatCurrency } from './services/currency';
 import './App.css';
@@ -16,6 +17,7 @@ function App() {
   const [editingGame, setEditingGame] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showStatistics, setShowStatistics] = useState(false);
+  const [showDashboard, setShowDashboard] = useState(false);
   const [currency, setCurrency] = useState(loadCurrencyPreference());
 
   // Filters and sorting
@@ -195,6 +197,13 @@ function App() {
             📊 Statistics
           </button>
           <button
+            onClick={() => setShowDashboard(true)}
+            className="btn btn-primary btn-small"
+            style={{ padding: '0.5rem 1rem' }}
+          >
+            📈 Price Tracker
+          </button>
+          <button
             onClick={() => setShowSettings(true)}
             className="btn btn-secondary btn-small"
             style={{ padding: '0.5rem 1rem' }}
@@ -338,6 +347,18 @@ function App() {
           currency={currency}
           onClose={() => setShowStatistics(false)}
         />
+      )}
+
+      {showDashboard && (
+        <div className="modal-overlay" onClick={() => setShowDashboard(false)}>
+          <div className="modal-content dashboard-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>📈 Price Tracker Dashboard</h2>
+              <button className="close-button" onClick={() => setShowDashboard(false)}>×</button>
+            </div>
+            <RefreshDashboard />
+          </div>
+        </div>
       )}
     </div>
   );
