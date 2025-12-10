@@ -100,19 +100,83 @@ async function scrapePriceCharting(gameName, platform, condition = 'CIB (Complet
 
     await randomDelay(1000, 2000);
 
+    // Check if we're on a search results page and need to click the first result
+    const isSearchResults = await page.evaluate(() => {
+      // Look for search results table or list
+      const searchTable = document.querySelector('table.table.table-striped, table#games_table');
+      return searchTable !== null;
+    });
+
+    console.log(`On search results page: ${isSearchResults}`);
+
+    if (isSearchResults) {
+      // Click on the first result that matches our region
+      const clickedResult = await page.evaluate((regionPrefix) => {
+        const rows = document.querySelectorAll('table.table.table-striped tbody tr, table#games_table tbody tr');
+
+        for (const row of rows) {
+          const link = row.querySelector('a[href*="/game/"]');
+          if (!link) continue;
+
+          const rowText = row.textContent.toLowerCase();
+
+          // If looking for a specific region, try to match it
+          if (regionPrefix) {
+            const regionLower = regionPrefix.toLowerCase();
+            // For PAL, look for "pal" in the link href or row text
+            if (regionPrefix === 'PAL' && (link.href.includes('pal') || rowText.includes('pal'))) {
+              link.click();
+              return true;
+            }
+            // For JP, look for "jp" or "japan"
+            if (regionPrefix === 'JP' && (link.href.includes('jp-') || rowText.includes('japan') || rowText.includes('jp '))) {
+              link.click();
+              return true;
+            }
+          }
+
+          // If no region specified or no match found yet, just click the first result
+          if (!regionPrefix) {
+            link.click();
+            return true;
+          }
+        }
+
+        // If no region match found, click the first result anyway
+        const firstLink = document.querySelector('table.table.table-striped tbody tr a[href*="/game/"], table#games_table tbody tr a[href*="/game/"]');
+        if (firstLink) {
+          firstLink.click();
+          return true;
+        }
+
+        return false;
+      }, regionPrefix);
+
+      if (clickedResult) {
+        console.log('Clicked on search result, waiting for navigation...');
+        await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 30000 });
+        await randomDelay(1000, 2000);
+      } else {
+        console.log('No search results found to click');
+        return null;
+      }
+    }
+
     // Map condition to column name
     const targetCondition = mapConditionToPriceCharting(condition);
     console.log(`Looking for condition: ${targetCondition}`);
 
     // Try to find price based on condition
     const price = await page.evaluate((targetCondition, regionPrefix) => {
-      // First, try to find the price table
-      const table = document.querySelector('table#games_table, table.prices');
+      // Try multiple selectors for the price table
+      const table = document.querySelector('table#games_table, table.prices, table.price_table, div.price-table table, table[id*="price"]');
 
       if (!table) {
         console.log('Price table not found');
         return null;
       }
+
+      console.log('Found price table');
 
       // Find the header row to locate the correct column
       const headerRow = table.querySelector('thead tr, tr:first-child');
@@ -123,6 +187,8 @@ async function scrapePriceCharting(gameName, platform, condition = 'CIB (Complet
 
       const headers = Array.from(headerRow.querySelectorAll('th, td'));
       let targetColumnIndex = -1;
+
+      console.log('Headers found:', headers.map(h => h.textContent.trim()));
 
       // Find the column index for the target condition
       for (let i = 0; i < headers.length; i++) {
@@ -136,42 +202,46 @@ async function scrapePriceCharting(gameName, platform, condition = 'CIB (Complet
 
       if (targetColumnIndex === -1) {
         console.log(`Column for ${targetCondition} not found`);
+        // Try to find any price column as fallback
+        for (let i = 0; i < headers.length; i++) {
+          const headerText = headers[i].textContent.trim().toLowerCase();
+          if (headerText.includes('price') || headerText.includes('value')) {
+            targetColumnIndex = i;
+            console.log(`Using fallback price column at index ${i}: ${headers[i].textContent.trim()}`);
+            break;
+          }
+        }
+      }
+
+      if (targetColumnIndex === -1) {
+        console.log('No price column found');
         return null;
       }
 
-      // Find the first data row that matches the region
+      // Find the first data row
       const dataRows = Array.from(table.querySelectorAll('tbody tr, tr:not(:first-child)'));
+      console.log(`Found ${dataRows.length} data rows`);
 
       for (const row of dataRows) {
         const cells = Array.from(row.querySelectorAll('td'));
 
         if (cells.length > targetColumnIndex) {
-          // Check if this row matches the region (if applicable)
-          const firstCell = cells[0]?.textContent.trim() || '';
-
-          // If we're looking for a specific region, check the "Set" column
-          if (regionPrefix) {
-            // Look for region indicator in the set column or first cell
-            const rowText = firstCell.toLowerCase();
-            const regionLower = regionPrefix.toLowerCase();
-
-            // Check if this row is for the correct region
-            if (regionPrefix === 'PAL' && !rowText.includes('pal')) continue;
-            if (regionPrefix === 'JP' && !rowText.includes('jp') && !rowText.includes('japan')) continue;
-          }
-
           // Extract price from the target column
           const priceCell = cells[targetColumnIndex];
           const priceText = priceCell?.textContent.trim() || '';
+          console.log(`Checking row, price text: "${priceText}"`);
+
           const match = priceText.match(/\$([0-9,]+\.?[0-9]*)/);
 
           if (match) {
-            console.log(`Found price: $${match[1]}`);
-            return parseFloat(match[1].replace(/,/g, ''));
+            const price = parseFloat(match[1].replace(/,/g, ''));
+            console.log(`Found price: $${match[1]} (${price})`);
+            return price;
           }
         }
       }
 
+      console.log('No price found in any row');
       return null;
     }, targetCondition, regionPrefix);
 
