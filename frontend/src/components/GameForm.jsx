@@ -115,7 +115,8 @@ function GameForm({ game, currency = 'USD', onClose, onSave }) {
     notes: '',
     igdb_id: '',
     igdb_cover_url: '',
-    igdb_release_date: ''
+    igdb_release_date: '',
+    posted_online: false
   });
 
   const [igdbQuery, setIgdbQuery] = useState('');
@@ -140,16 +141,19 @@ function GameForm({ game, currency = 'USD', onClose, onSave }) {
         notes: game.notes || '',
         igdb_id: game.igdb_id || '',
         igdb_cover_url: game.igdb_cover_url || '',
-        igdb_release_date: game.igdb_release_date || ''
+        igdb_release_date: game.igdb_release_date || '',
+        posted_online: game.posted_online === 1 || game.posted_online === true
       });
     }
   }, [game]);
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
+    const fieldValue = type === 'checkbox' ? checked : value;
+
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: fieldValue
     }));
 
     // Auto-calculate selling value when market value changes
@@ -434,6 +438,19 @@ function GameForm({ game, currency = 'USD', onClose, onSave }) {
               <option value="Box Only">Box Only</option>
               <option value="Manual Only">Manual Only</option>
             </select>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                name="posted_online"
+                checked={formData.posted_online}
+                onChange={handleChange}
+                style={{ cursor: 'pointer' }}
+              />
+              Posted Online
+            </label>
           </div>
 
           <div className="form-group">

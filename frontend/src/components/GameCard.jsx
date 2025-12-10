@@ -29,6 +29,20 @@ function GameCard({ game, currency = 'USD', onEdit, onDelete, onRefreshMarket })
           {game.condition && (
             <div className="game-condition">{game.condition}</div>
           )}
+          {game.posted_online === 1 && (
+            <div style={{
+              display: 'inline-block',
+              marginTop: '0.5rem',
+              padding: '0.25rem 0.5rem',
+              backgroundColor: 'var(--success-color)',
+              color: 'white',
+              borderRadius: '4px',
+              fontSize: '0.75rem',
+              fontWeight: '500'
+            }}>
+              Posted Online
+            </div>
+          )}
         </div>
       </div>
 

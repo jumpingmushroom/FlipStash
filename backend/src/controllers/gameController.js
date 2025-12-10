@@ -40,7 +40,8 @@ export async function createGame(req, res) {
       name, platform, purchase_value, market_value, selling_value, sold_value,
       purchase_date, sale_date, condition, notes,
       igdb_id, igdb_cover_url, igdb_release_date,
-      purchase_value_currency, market_value_currency, selling_value_currency, sold_value_currency
+      purchase_value_currency, market_value_currency, selling_value_currency, sold_value_currency,
+      posted_online
     } = req.body;
 
     if (!name || !platform) {
@@ -63,7 +64,8 @@ export async function createGame(req, res) {
       purchase_value_currency || 'USD',
       market_value_currency || 'USD',
       selling_value_currency || 'USD',
-      sold_value_currency || 'USD'
+      sold_value_currency || 'USD',
+      posted_online ? 1 : 0
     );
 
     const newGame = statements.getGameById.get(result.lastInsertRowid);
@@ -83,7 +85,8 @@ export async function updateGame(req, res) {
       name, platform, purchase_value, market_value, selling_value, sold_value,
       purchase_date, sale_date, condition, notes,
       igdb_id, igdb_cover_url, igdb_release_date,
-      purchase_value_currency, market_value_currency, selling_value_currency, sold_value_currency
+      purchase_value_currency, market_value_currency, selling_value_currency, sold_value_currency,
+      posted_online
     } = req.body;
 
     if (!name || !platform) {
@@ -107,6 +110,7 @@ export async function updateGame(req, res) {
       market_value_currency || 'USD',
       selling_value_currency || 'USD',
       sold_value_currency || 'USD',
+      posted_online ? 1 : 0,
       req.params.id
     );
 
