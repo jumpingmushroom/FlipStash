@@ -1,0 +1,9 @@
+.statistics-page {
+  width: 100%;
+}
+
+.statistics-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
