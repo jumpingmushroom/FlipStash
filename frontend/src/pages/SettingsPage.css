@@ -1,0 +1,49 @@
+.settings-page {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.settings-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.settings-section {
+  background-color: var(--surface-color);
+  padding: 2rem;
+  border-radius: 8px;
+}
+
+.settings-section h2 {
+  font-size: 1.5rem;
+  color: var(--text-primary);
+  margin-bottom: 1.5rem;
+}
+
+.help-text {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin-top: 0.5rem;
+}
+
+.success-message {
+  padding: 0.75rem;
+  background-color: var(--success-color);
+  color: white;
+  border-radius: 4px;
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+}
+
+.about-text {
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-bottom: 1rem;
+}
+
+.version-info {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-style: italic;
+}

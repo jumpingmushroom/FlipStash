@@ -1,0 +1,188 @@
+.price-tracker-page {
+  width: 100%;
+}
+
+.page-subtitle {
+  color: var(--text-secondary);
+  margin-top: 0.5rem;
+}
+
+.dashboard-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding: 1rem;
+  background-color: var(--surface-color);
+  border-radius: 8px;
+}
+
+.sort-controls {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.sort-controls label {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.dashboard-list {
+  background-color: var(--surface-color);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.dashboard-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.dashboard-table thead {
+  background-color: var(--bg-color);
+}
+
+.dashboard-table th {
+  padding: 1rem;
+  text-align: left;
+  color: var(--text-primary);
+  font-weight: 600;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.dashboard-table td {
+  padding: 1rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.dashboard-row:hover {
+  background-color: var(--surface-hover);
+}
+
+.game-info-cell {
+  width: 40%;
+}
+
+.game-info-container {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.game-thumbnail {
+  width: 40px;
+  height: 50px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.game-thumbnail-placeholder {
+  width: 40px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--surface-hover);
+  border-radius: 4px;
+  font-size: 1.5rem;
+}
+
+.game-text-info {
+  flex: 1;
+}
+
+.game-name {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.game-platform {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.last-updated-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.last-updated-date {
+  color: var(--text-primary);
+}
+
+.last-updated-time {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.refresh-status-badge {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  margin-top: 0.25rem;
+}
+
+.status-success {
+  background-color: var(--success-color);
+  color: white;
+}
+
+.status-info {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.status-warning {
+  background-color: var(--warning-color);
+  color: white;
+}
+
+.current-value {
+  color: var(--text-primary);
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.price-change {
+  display: flex;
+  flex-direction: column;
+}
+
+.price-change.positive {
+  color: var(--success-color);
+}
+
+.price-change.negative {
+  color: var(--danger-color);
+}
+
+.price-change-amount {
+  font-weight: 600;
+}
+
+.price-change-percentage {
+  font-size: 0.85rem;
+  opacity: 0.8;
+}
+
+.no-data {
+  color: var(--text-secondary);
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  color: var(--primary-color);
+  cursor: pointer;
+  text-decoration: underline;
+  font-size: 0.9rem;
+  padding: 0;
+}
+
+.btn-link:hover {
+  color: var(--primary-dark);
+}
