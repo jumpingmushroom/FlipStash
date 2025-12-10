@@ -20,6 +20,7 @@ function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [platformFilter, setPlatformFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState(''); // all, sold, available
+  const [postedFilter, setPostedFilter] = useState(''); // all, posted, not-posted
   const [sortBy, setSortBy] = useState('created_at'); // created_at, name, purchase_value, market_value
 
   // Stats
@@ -39,7 +40,7 @@ function App() {
   useEffect(() => {
     applyFiltersAndSort();
     calculateStats();
-  }, [games, searchQuery, platformFilter, statusFilter, sortBy]);
+  }, [games, searchQuery, platformFilter, statusFilter, postedFilter, sortBy]);
 
   const loadGames = async () => {
     setIsLoading(true);
@@ -76,6 +77,13 @@ function App() {
       filtered = filtered.filter(game => game.sold_value !== null);
     } else if (statusFilter === 'available') {
       filtered = filtered.filter(game => game.sold_value === null);
+    }
+
+    // Posted filter
+    if (postedFilter === 'posted') {
+      filtered = filtered.filter(game => game.posted_online === 1);
+    } else if (postedFilter === 'not-posted') {
+      filtered = filtered.filter(game => game.posted_online === 0 || game.posted_online === null);
     }
 
     // Sort
@@ -237,6 +245,16 @@ function App() {
               <option value="">All Games</option>
               <option value="available">Available</option>
               <option value="sold">Sold</option>
+            </select>
+
+            <select
+              className="select"
+              value={postedFilter}
+              onChange={(e) => setPostedFilter(e.target.value)}
+            >
+              <option value="">All (Posted Status)</option>
+              <option value="posted">Posted Online</option>
+              <option value="not-posted">Not Posted</option>
             </select>
 
             <select
