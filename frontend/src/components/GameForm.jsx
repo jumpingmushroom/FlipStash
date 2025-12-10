@@ -50,6 +50,7 @@ const normalizePlatform = (igdbPlatform) => {
     'PSX': 'PlayStation 1',
     'PlayStation Vita': 'PS Vita',
     'PS Vita': 'PS Vita',
+    'PlayStation Portable': 'PSP',
     'PSP': 'PSP',
     'Xbox Series X|S': 'Xbox Series X/S',
     'Xbox Series S/X': 'Xbox Series X/S',
