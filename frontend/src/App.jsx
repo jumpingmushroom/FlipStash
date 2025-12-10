@@ -3,7 +3,7 @@ import GameCard from './components/GameCard';
 import GameForm from './components/GameForm';
 import Settings from './components/Settings';
 import { gamesApi } from './services/api';
-import { loadCurrencyPreference, saveCurrencyPreference, convertFromUSD, formatCurrency } from './services/currency';
+import { loadCurrencyPreference, saveCurrencyPreference, convertCurrency, formatCurrency } from './services/currency';
 import './App.css';
 
 function App() {
@@ -100,13 +100,22 @@ function App() {
     const totalGames = games.length;
     const soldGames = games.filter(g => g.sold_value !== null).length;
 
+    // Convert all market values to USD before summing
     const totalValue = games
       .filter(g => g.sold_value === null && g.market_value !== null)
-      .reduce((sum, g) => sum + (g.market_value || 0), 0);
+      .reduce((sum, g) => {
+        const valueInUSD = convertCurrency(g.market_value || 0, g.market_value_currency || 'USD', 'USD');
+        return sum + (valueInUSD || 0);
+      }, 0);
 
+    // Convert sold and purchase values to USD before calculating profit
     const totalProfit = games
       .filter(g => g.sold_value !== null && g.purchase_value !== null)
-      .reduce((sum, g) => sum + ((g.sold_value || 0) - (g.purchase_value || 0)), 0);
+      .reduce((sum, g) => {
+        const soldInUSD = convertCurrency(g.sold_value || 0, g.sold_value_currency || 'USD', 'USD');
+        const purchaseInUSD = convertCurrency(g.purchase_value || 0, g.purchase_value_currency || 'USD', 'USD');
+        return sum + ((soldInUSD || 0) - (purchaseInUSD || 0));
+      }, 0);
 
     setStats({ totalGames, totalValue, totalProfit, soldGames });
   };
@@ -182,12 +191,12 @@ function App() {
             <div className="stat-label">Total Games</div>
           </div>
           <div className="stat-item">
-            <div className="stat-value">{formatCurrency(convertFromUSD(stats.totalValue, currency), currency)}</div>
+            <div className="stat-value">{formatCurrency(convertCurrency(stats.totalValue, 'USD', currency), currency)}</div>
             <div className="stat-label">Collection Value</div>
           </div>
           <div className="stat-item">
             <div className="stat-value" style={{ color: stats.totalProfit >= 0 ? 'var(--success-color)' : 'var(--danger-color)' }}>
-              {stats.totalProfit >= 0 ? '+' : ''}{formatCurrency(convertFromUSD(Math.abs(stats.totalProfit), currency), currency)}
+              {stats.totalProfit >= 0 ? '+' : ''}{formatCurrency(convertCurrency(Math.abs(stats.totalProfit), 'USD', currency), currency)}
             </div>
             <div className="stat-label">Total Profit</div>
           </div>

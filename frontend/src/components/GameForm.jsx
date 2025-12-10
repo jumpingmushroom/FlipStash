@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { gamesApi } from '../services/api';
+import { getCurrency } from '../services/currency';
 
 // Common gaming platforms
 const PLATFORMS = [
@@ -97,6 +98,9 @@ const normalizePlatform = (igdbPlatform) => {
 };
 
 function GameForm({ game, currency = 'USD', onClose, onSave }) {
+  const currencyInfo = getCurrency(currency);
+  const currencySymbol = currencyInfo ? currencyInfo.symbol : '$';
+
   const [formData, setFormData] = useState({
     name: '',
     platform: '',
@@ -207,7 +211,12 @@ function GameForm({ game, currency = 'USD', onClose, onSave }) {
         market_value: formData.market_value ? parseFloat(formData.market_value) : null,
         selling_value: formData.selling_value ? parseFloat(formData.selling_value) : null,
         sold_value: formData.sold_value ? parseFloat(formData.sold_value) : null,
-        igdb_id: formData.igdb_id ? parseInt(formData.igdb_id) : null
+        igdb_id: formData.igdb_id ? parseInt(formData.igdb_id) : null,
+        // Add currency fields - set to current selected currency
+        purchase_value_currency: formData.purchase_value ? currency : null,
+        market_value_currency: formData.market_value ? currency : null,
+        selling_value_currency: formData.selling_value ? currency : null,
+        sold_value_currency: formData.sold_value ? currency : null
       };
 
       if (game) {
@@ -332,22 +341,10 @@ function GameForm({ game, currency = 'USD', onClose, onSave }) {
             </select>
           </div>
 
-          {currency !== 'USD' && (
-            <div style={{
-              padding: '0.75rem',
-              backgroundColor: 'var(--surface-color)',
-              borderRadius: '4px',
-              fontSize: '0.9rem',
-              color: 'var(--text-secondary)',
-              marginBottom: '1rem'
-            }}>
-              Note: Enter all values in USD. They will be displayed in {currency} throughout the app.
-            </div>
-          )}
 
           <div className="form-row">
             <div className="form-group">
-              <label className="form-label">Purchase Value ($)</label>
+              <label className="form-label">Purchase Value ({currencySymbol})</label>
               <input
                 type="number"
                 step="0.01"
@@ -372,7 +369,7 @@ function GameForm({ game, currency = 'USD', onClose, onSave }) {
 
           <div className="form-row">
             <div className="form-group">
-              <label className="form-label">Market Value ($)</label>
+              <label className="form-label">Market Value ({currencySymbol})</label>
               <input
                 type="number"
                 step="0.01"
@@ -384,7 +381,7 @@ function GameForm({ game, currency = 'USD', onClose, onSave }) {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Selling Value ($)</label>
+              <label className="form-label">Selling Value ({currencySymbol})</label>
               <input
                 type="number"
                 step="0.01"
@@ -398,7 +395,7 @@ function GameForm({ game, currency = 'USD', onClose, onSave }) {
 
           <div className="form-row">
             <div className="form-group">
-              <label className="form-label">Sold Value ($)</label>
+              <label className="form-label">Sold Value ({currencySymbol})</label>
               <input
                 type="number"
                 step="0.01"

@@ -1,10 +1,13 @@
 import React from 'react';
-import { convertFromUSD, formatCurrency } from '../services/currency';
+import { convertCurrency, formatCurrency } from '../services/currency';
 
 function GameCard({ game, currency = 'USD', onEdit, onDelete, onRefreshMarket }) {
   const calculateProfit = () => {
     if (game.sold_value && game.purchase_value) {
-      return game.sold_value - game.purchase_value;
+      // Convert both values to the same currency (USD) for calculation
+      const soldInUSD = convertCurrency(game.sold_value, game.sold_value_currency || 'USD', 'USD');
+      const purchaseInUSD = convertCurrency(game.purchase_value, game.purchase_value_currency || 'USD', 'USD');
+      return soldInUSD - purchaseInUSD;
     }
     return null;
   };
@@ -33,28 +36,28 @@ function GameCard({ game, currency = 'USD', onEdit, onDelete, onRefreshMarket })
         {game.purchase_value !== null && (
           <div className="detail-item">
             <span className="detail-label">Purchase</span>
-            <span className="detail-value">{formatCurrency(convertFromUSD(game.purchase_value, currency), currency)}</span>
+            <span className="detail-value">{formatCurrency(convertCurrency(game.purchase_value, game.purchase_value_currency || 'USD', currency), currency)}</span>
           </div>
         )}
 
         {game.market_value !== null && (
           <div className="detail-item">
             <span className="detail-label">Market</span>
-            <span className="detail-value">{formatCurrency(convertFromUSD(game.market_value, currency), currency)}</span>
+            <span className="detail-value">{formatCurrency(convertCurrency(game.market_value, game.market_value_currency || 'USD', currency), currency)}</span>
           </div>
         )}
 
         {game.selling_value !== null && (
           <div className="detail-item">
             <span className="detail-label">Selling</span>
-            <span className="detail-value">{formatCurrency(convertFromUSD(game.selling_value, currency), currency)}</span>
+            <span className="detail-value">{formatCurrency(convertCurrency(game.selling_value, game.selling_value_currency || 'USD', currency), currency)}</span>
           </div>
         )}
 
         {game.sold_value !== null && (
           <div className="detail-item">
             <span className="detail-label">Sold For</span>
-            <span className="detail-value">{formatCurrency(convertFromUSD(game.sold_value, currency), currency)}</span>
+            <span className="detail-value">{formatCurrency(convertCurrency(game.sold_value, game.sold_value_currency || 'USD', currency), currency)}</span>
           </div>
         )}
 
@@ -62,7 +65,7 @@ function GameCard({ game, currency = 'USD', onEdit, onDelete, onRefreshMarket })
           <div className="detail-item">
             <span className="detail-label">Profit/Loss</span>
             <span className={`detail-value ${profit >= 0 ? 'positive' : 'negative'}`}>
-              {profit >= 0 ? '+' : ''}{formatCurrency(convertFromUSD(Math.abs(profit), currency), currency)}
+              {profit >= 0 ? '+' : ''}{formatCurrency(convertCurrency(Math.abs(profit), 'USD', currency), currency)}
             </span>
           </div>
         )}

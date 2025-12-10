@@ -46,6 +46,29 @@ export const convertFromUSD = (usdValue, targetCurrency) => {
 };
 
 /**
+ * Convert a value from one currency to another
+ * @param {number} value - Value to convert
+ * @param {string} fromCurrency - Source currency code
+ * @param {string} toCurrency - Target currency code
+ * @returns {number} - Converted value
+ */
+export const convertCurrency = (value, fromCurrency, toCurrency) => {
+  if (!value || value === null) return null;
+  if (fromCurrency === toCurrency) return value;
+
+  // Convert to USD first, then to target currency
+  const fromRate = EXCHANGE_RATES[fromCurrency];
+  const toRate = EXCHANGE_RATES[toCurrency];
+
+  if (!fromRate || !toRate) return value;
+
+  // Convert to USD
+  const usdValue = value / fromRate;
+  // Convert from USD to target
+  return usdValue * toRate;
+};
+
+/**
  * Format a value with the appropriate currency symbol
  * @param {number} value - The value to format
  * @param {string} currencyCode - Currency code (e.g., 'USD', 'EUR')
