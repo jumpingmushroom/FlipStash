@@ -68,6 +68,12 @@ try {
     console.log('Migrating database: Adding sold_value_currency column');
     db.exec(`ALTER TABLE games ADD COLUMN sold_value_currency TEXT DEFAULT 'USD'`);
   }
+
+  // Migration: Add posted_online column
+  if (!columns.includes('posted_online')) {
+    console.log('Migrating database: Adding posted_online column');
+    db.exec(`ALTER TABLE games ADD COLUMN posted_online INTEGER DEFAULT 0`);
+  }
 } catch (error) {
   console.error('Migration error:', error.message);
 }
@@ -93,8 +99,9 @@ export const statements = {
       name, platform, purchase_value, market_value, selling_value, sold_value,
       purchase_date, sale_date, condition, notes,
       igdb_id, igdb_cover_url, igdb_release_date,
-      purchase_value_currency, market_value_currency, selling_value_currency, sold_value_currency
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      purchase_value_currency, market_value_currency, selling_value_currency, sold_value_currency,
+      posted_online
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `),
 
   updateGame: db.prepare(`
@@ -104,6 +111,7 @@ export const statements = {
       condition = ?, notes = ?, igdb_id = ?, igdb_cover_url = ?,
       igdb_release_date = ?,
       purchase_value_currency = ?, market_value_currency = ?, selling_value_currency = ?, sold_value_currency = ?,
+      posted_online = ?,
       updated_at = CURRENT_TIMESTAMP
     WHERE id = ?
   `),
