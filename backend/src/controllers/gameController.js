@@ -2,6 +2,8 @@ import { statements } from '../db/index.js';
 import { searchGames as igdbSearch, getGameDetails } from '../services/igdb.js';
 import { getMarketValue } from '../services/scraper.js';
 import { recordPriceHistory } from '../services/priceHistory.js';
+import { stringify } from 'csv-stringify/sync';
+import { parse } from 'csv-parse/sync';
 
 /**
  * Get all games
@@ -226,5 +228,217 @@ export async function refreshMarketValue(req, res) {
   } catch (error) {
     console.error('Error refreshing market value:', error);
     res.status(500).json({ error: 'Failed to refresh market value' });
+  }
+}
+
+/**
+ * Export all games to CSV
+ */
+export async function exportToCSV(req, res) {
+  try {
+    const games = statements.getAllGames.all();
+
+    // Define CSV columns
+    const columns = [
+      'id', 'name', 'platform', 'purchase_value', 'market_value',
+      'selling_value', 'sold_value', 'purchase_date', 'sale_date',
+      'condition', 'notes', 'igdb_id', 'igdb_cover_url', 'igdb_release_date',
+      'purchase_value_currency', 'market_value_currency',
+      'selling_value_currency', 'sold_value_currency', 'posted_online',
+      'created_at', 'updated_at', 'last_refresh_at'
+    ];
+
+    // Convert games to CSV format
+    const csv = stringify(games, {
+      header: true,
+      columns: columns
+    });
+
+    // Set headers for file download
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename=flipstash_export.csv');
+    res.send(csv);
+  } catch (error) {
+    console.error('Error exporting to CSV:', error);
+    res.status(500).json({ error: 'Failed to export games to CSV' });
+  }
+}
+
+/**
+ * Import games from CSV
+ */
+export async function importFromCSV(req, res) {
+  try {
+    const { csv: csvData, mode } = req.body;
+
+    if (!csvData) {
+      return res.status(400).json({ error: 'CSV data is required' });
+    }
+
+    if (!mode || !['skip', 'update', 'replace'].includes(mode)) {
+      return res.status(400).json({ error: 'Valid import mode is required (skip, update, replace)' });
+    }
+
+    // Parse CSV
+    const records = parse(csvData, {
+      columns: true,
+      skip_empty_lines: true,
+      trim: true
+    });
+
+    const results = {
+      total: records.length,
+      imported: 0,
+      updated: 0,
+      skipped: 0,
+      errors: []
+    };
+
+    // If mode is replace, delete all existing games first
+    if (mode === 'replace') {
+      const allGames = statements.getAllGames.all();
+      for (const game of allGames) {
+        statements.deleteGame.run(game.id);
+      }
+    }
+
+    // Process each record
+    for (let i = 0; i < records.length; i++) {
+      const record = records[i];
+
+      try {
+        // Validate required fields
+        if (!record.name || !record.platform) {
+          results.errors.push({
+            row: i + 2, // +2 because: +1 for header, +1 for 0-index
+            error: 'Missing required fields (name and platform)'
+          });
+          results.skipped++;
+          continue;
+        }
+
+        // Check for duplicates (based on name + platform)
+        const existingGames = statements.getAllGames.all();
+        const duplicate = existingGames.find(g =>
+          g.name.toLowerCase() === record.name.toLowerCase() &&
+          g.platform.toLowerCase() === record.platform.toLowerCase()
+        );
+
+        if (duplicate && mode === 'skip') {
+          results.skipped++;
+          continue;
+        }
+
+        // Fetch IGDB data if igdb_id is provided
+        let igdbData = {
+          igdb_id: record.igdb_id || null,
+          igdb_cover_url: record.igdb_cover_url || null,
+          igdb_release_date: record.igdb_release_date || null
+        };
+
+        if (record.igdb_id && !record.igdb_cover_url) {
+          try {
+            const details = await getGameDetails(parseInt(record.igdb_id));
+            if (details) {
+              igdbData.igdb_cover_url = details.cover || null;
+              igdbData.igdb_release_date = details.release_date || null;
+            }
+          } catch (igdbError) {
+            console.log(`Could not fetch IGDB data for game ${record.name}:`, igdbError.message);
+          }
+        }
+
+        // Prepare game data
+        const gameData = {
+          name: record.name,
+          platform: record.platform,
+          purchase_value: record.purchase_value ? parseFloat(record.purchase_value) : null,
+          market_value: record.market_value ? parseFloat(record.market_value) : null,
+          selling_value: record.selling_value ? parseFloat(record.selling_value) : null,
+          sold_value: record.sold_value ? parseFloat(record.sold_value) : null,
+          purchase_date: record.purchase_date || null,
+          sale_date: record.sale_date || null,
+          condition: record.condition || null,
+          notes: record.notes || null,
+          igdb_id: igdbData.igdb_id ? parseInt(igdbData.igdb_id) : null,
+          igdb_cover_url: igdbData.igdb_cover_url,
+          igdb_release_date: igdbData.igdb_release_date,
+          purchase_value_currency: record.purchase_value_currency || 'USD',
+          market_value_currency: record.market_value_currency || 'USD',
+          selling_value_currency: record.selling_value_currency || 'USD',
+          sold_value_currency: record.sold_value_currency || 'USD',
+          posted_online: record.posted_online === '1' || record.posted_online === 'true' ? 1 : 0
+        };
+
+        if (duplicate && mode === 'update') {
+          // Update existing game
+          statements.updateGame.run(
+            gameData.name,
+            gameData.platform,
+            gameData.purchase_value,
+            gameData.market_value,
+            gameData.selling_value,
+            gameData.sold_value,
+            gameData.purchase_date,
+            gameData.sale_date,
+            gameData.condition,
+            gameData.notes,
+            gameData.igdb_id,
+            gameData.igdb_cover_url,
+            gameData.igdb_release_date,
+            gameData.purchase_value_currency,
+            gameData.market_value_currency,
+            gameData.selling_value_currency,
+            gameData.sold_value_currency,
+            gameData.posted_online,
+            duplicate.id
+          );
+          results.updated++;
+        } else {
+          // Insert new game
+          const result = statements.insertGame.run(
+            gameData.name,
+            gameData.platform,
+            gameData.purchase_value,
+            gameData.market_value,
+            gameData.selling_value,
+            gameData.sold_value,
+            gameData.purchase_date,
+            gameData.sale_date,
+            gameData.condition,
+            gameData.notes,
+            gameData.igdb_id,
+            gameData.igdb_cover_url,
+            gameData.igdb_release_date,
+            gameData.purchase_value_currency,
+            gameData.market_value_currency,
+            gameData.selling_value_currency,
+            gameData.sold_value_currency,
+            gameData.posted_online
+          );
+
+          // Record price history if market value is provided
+          if (gameData.market_value) {
+            recordPriceHistory(result.lastInsertRowid, gameData.market_value, 'import');
+          }
+
+          results.imported++;
+        }
+      } catch (error) {
+        results.errors.push({
+          row: i + 2,
+          error: error.message
+        });
+        results.skipped++;
+      }
+    }
+
+    res.json({
+      success: true,
+      results
+    });
+  } catch (error) {
+    console.error('Error importing from CSV:', error);
+    res.status(500).json({ error: 'Failed to import games from CSV: ' + error.message });
   }
 }

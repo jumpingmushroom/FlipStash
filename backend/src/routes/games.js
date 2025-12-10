@@ -6,7 +6,9 @@ import {
   updateGame,
   deleteGame,
   searchGames,
-  refreshMarketValue
+  refreshMarketValue,
+  exportToCSV,
+  importFromCSV
 } from '../controllers/gameController.js';
 import {
   getGamePriceHistory,
@@ -18,6 +20,8 @@ const router = express.Router();
 // Additional routes (must be before parameterized routes)
 router.get('/igdb/search', searchGames);
 router.get('/refresh-dashboard', getRefreshDashboard);
+router.get('/export/csv', exportToCSV);
+router.post('/import/csv', importFromCSV);
 
 // CRUD routes
 router.get('/', getAllGames);

@@ -4,6 +4,7 @@ import GameForm from './components/GameForm';
 import Settings from './components/Settings';
 import Statistics from './components/Statistics';
 import RefreshDashboard from './components/RefreshDashboard';
+import Tools from './components/Tools';
 import { gamesApi } from './services/api';
 import { loadCurrencyPreference, saveCurrencyPreference, convertCurrency, formatCurrency } from './services/currency';
 import './App.css';
@@ -18,6 +19,7 @@ function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [showStatistics, setShowStatistics] = useState(false);
   const [showDashboard, setShowDashboard] = useState(false);
+  const [showTools, setShowTools] = useState(false);
   const [currency, setCurrency] = useState(loadCurrencyPreference());
 
   // Filters and sorting
@@ -204,6 +206,13 @@ function App() {
             📈 Price Tracker
           </button>
           <button
+            onClick={() => setShowTools(true)}
+            className="btn btn-primary btn-small"
+            style={{ padding: '0.5rem 1rem' }}
+          >
+            🛠️ Tools
+          </button>
+          <button
             onClick={() => setShowSettings(true)}
             className="btn btn-secondary btn-small"
             style={{ padding: '0.5rem 1rem' }}
@@ -359,6 +368,13 @@ function App() {
             <RefreshDashboard />
           </div>
         </div>
+      )}
+
+      {showTools && (
+        <Tools
+          onClose={() => setShowTools(false)}
+          onDataChange={loadGames}
+        />
       )}
     </div>
   );
