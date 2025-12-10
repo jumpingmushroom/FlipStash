@@ -164,10 +164,11 @@ async function scrapeFinnNo(gameName, platform) {
 }
 
 /**
- * Get market value from multiple sources and calculate average
+ * Get market value from multiple sources
+ * Priority: Finn.no (NOK) over PriceCharting (USD) to avoid mixing currencies
  * @param {string} gameName - Name of the game
  * @param {string} platform - Gaming platform
- * @returns {Object} - Object with market_value and selling_value
+ * @returns {Object} - Object with market_value, selling_value, and currency
  */
 export async function getMarketValue(gameName, platform) {
   console.log(`Fetching market value for: ${gameName} (${platform})`);
@@ -178,17 +179,29 @@ export async function getMarketValue(gameName, platform) {
     scrapeFinnNo(gameName, platform)
   ]);
 
-  console.log('PriceCharting price:', priceChartingPrice);
-  console.log('Finn.no price:', finnNoPrice);
+  console.log('PriceCharting price (USD):', priceChartingPrice);
+  console.log('Finn.no price (NOK):', finnNoPrice);
 
-  const prices = [];
-  if (priceChartingPrice !== null) prices.push(priceChartingPrice);
-  if (finnNoPrice !== null) prices.push(finnNoPrice);
+  // Determine which source to use and the currency
+  let marketValue = null;
+  let currency = 'USD';
 
-  if (prices.length === 0) {
+  // Prefer Finn.no (NOK) if available, otherwise use PriceCharting (USD)
+  if (finnNoPrice !== null) {
+    marketValue = finnNoPrice;
+    currency = 'NOK';
+    console.log('Using Finn.no price (NOK)');
+  } else if (priceChartingPrice !== null) {
+    marketValue = priceChartingPrice;
+    currency = 'USD';
+    console.log('Using PriceCharting price (USD)');
+  }
+
+  if (marketValue === null) {
     return {
       market_value: null,
       selling_value: null,
+      currency: 'USD',
       sources: {
         pricecharting: priceChartingPrice,
         finnno: finnNoPrice
@@ -196,15 +209,13 @@ export async function getMarketValue(gameName, platform) {
     };
   }
 
-  // Calculate average market value
-  const marketValue = prices.reduce((sum, price) => sum + price, 0) / prices.length;
-
   // Calculate selling value (market value + 10%)
   const sellingValue = Math.round(marketValue * 1.10 * 100) / 100;
 
   return {
     market_value: Math.round(marketValue * 100) / 100,
     selling_value: sellingValue,
+    currency: currency,
     sources: {
       pricecharting: priceChartingPrice,
       finnno: finnNoPrice

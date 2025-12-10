@@ -139,7 +139,7 @@ export const statements = {
   updateMarketValue: db.prepare(`
     UPDATE games SET
       market_value = ?, selling_value = ?,
-      market_value_currency = 'USD', selling_value_currency = 'USD',
+      market_value_currency = ?, selling_value_currency = ?,
       last_refresh_at = CURRENT_TIMESTAMP,
       updated_at = CURRENT_TIMESTAMP
     WHERE id = ?
