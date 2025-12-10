@@ -8,11 +8,16 @@ import {
   searchGames,
   refreshMarketValue
 } from '../controllers/gameController.js';
+import {
+  getGamePriceHistory,
+  getRefreshDashboard
+} from '../controllers/priceHistoryController.js';
 
 const router = express.Router();
 
 // Additional routes (must be before parameterized routes)
 router.get('/igdb/search', searchGames);
+router.get('/refresh-dashboard', getRefreshDashboard);
 
 // CRUD routes
 router.get('/', getAllGames);
@@ -23,5 +28,6 @@ router.delete('/:id', deleteGame);
 
 // More specific routes
 router.post('/:id/refresh-market-value', refreshMarketValue);
+router.get('/:id/price-history', getGamePriceHistory);
 
 export default router;

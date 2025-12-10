@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { convertCurrency, formatCurrency } from '../services/currency';
+import PriceChart from './PriceChart';
 
 function GameCard({ game, currency = 'USD', onEdit, onDelete, onRefreshMarket }) {
+  const [showPriceHistory, setShowPriceHistory] = useState(false);
   const calculateProfit = () => {
     if (game.sold_value && game.purchase_value) {
       // Convert both values to the same currency (USD) for calculation
@@ -105,6 +107,30 @@ function GameCard({ game, currency = 'USD', onEdit, onDelete, onRefreshMarket })
         </div>
       )}
 
+      {/* Price History Section */}
+      {game.market_value !== null && (
+        <div className="price-history-section">
+          <div className="price-history-header">
+            <span className="price-history-title">Price Trend</span>
+            {game.last_refresh_at && (
+              <span className="last-refresh">
+                Last updated: {new Date(game.last_refresh_at).toLocaleDateString()}
+              </span>
+            )}
+          </div>
+          <div className="price-history-mini-container">
+            <PriceChart gameId={game.id} mode="mini" />
+          </div>
+          <button
+            onClick={() => setShowPriceHistory(true)}
+            className="btn-link"
+            style={{ fontSize: '0.85rem', marginTop: '0.5rem' }}
+          >
+            View Price History →
+          </button>
+        </div>
+      )}
+
       <div className="game-actions">
         <button onClick={() => onEdit(game)} className="btn btn-secondary btn-small">
           Edit
@@ -118,6 +144,15 @@ function GameCard({ game, currency = 'USD', onEdit, onDelete, onRefreshMarket })
           Delete
         </button>
       </div>
+
+      {/* Price History Modal */}
+      {showPriceHistory && (
+        <PriceChart
+          gameId={game.id}
+          mode="detailed"
+          onClose={() => setShowPriceHistory(false)}
+        />
+      )}
     </div>
   );
 }

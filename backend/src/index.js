@@ -5,6 +5,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
 import gamesRouter from './routes/games.js';
+import { initializeAutoRefresh } from './services/autoRefresh.js';
 
 // Load environment variables
 dotenv.config();
@@ -49,4 +50,7 @@ app.use((err, req, res, next) => {
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`FlipStash backend running on port ${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+
+  // Initialize automated market value refresh
+  initializeAutoRefresh();
 });
