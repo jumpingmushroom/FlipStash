@@ -17,7 +17,9 @@ export const gamesApi = {
   update: (id, game) => api.put(`/games/${id}`, game),
   delete: (id) => api.delete(`/games/${id}`),
   searchIGDB: (query) => api.get('/games/igdb/search', { params: { query } }),
-  refreshMarketValue: (id) => api.post(`/games/${id}/refresh-market-value`)
+  refreshMarketValue: (id) => api.post(`/games/${id}/refresh-market-value`),
+  exportCSV: () => api.get('/games/export/csv', { responseType: 'blob' }),
+  importCSV: (csvData, mode) => api.post('/games/import/csv', { csv: csvData, mode })
 };
 
 export default api;
