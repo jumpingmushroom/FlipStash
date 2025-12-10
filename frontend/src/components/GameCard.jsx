@@ -47,7 +47,10 @@ function GameCard({ game, currency = 'USD', onEdit, onDelete, onRefreshMarket })
         )}
         <div className="game-info">
           <h3 className="game-title">{game.name}</h3>
-          <span className="game-platform">{game.platform}</span>
+          <span className="game-platform">
+            {game.platform}
+            {game.region && game.region !== 'None' && ` (${game.region})`}
+          </span>
           {game.condition && (
             <div className="game-condition">{game.condition}</div>
           )}

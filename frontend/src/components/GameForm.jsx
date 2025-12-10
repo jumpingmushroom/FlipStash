@@ -105,13 +105,14 @@ function GameForm({ game, currency = 'USD', onClose, onSave }) {
   const [formData, setFormData] = useState({
     name: '',
     platform: '',
+    region: 'PAL',
     purchase_value: '',
     market_value: '',
     selling_value: '',
     sold_value: '',
     purchase_date: '',
     sale_date: '',
-    condition: '',
+    condition: 'CIB (Complete in Box)',
     notes: '',
     igdb_id: '',
     igdb_cover_url: '',
@@ -131,6 +132,7 @@ function GameForm({ game, currency = 'USD', onClose, onSave }) {
       setFormData({
         name: game.name || '',
         platform: game.platform || '',
+        region: game.region || 'PAL',
         purchase_value: game.purchase_value || '',
         market_value: game.market_value || '',
         selling_value: game.selling_value || '',
@@ -346,6 +348,21 @@ function GameForm({ game, currency = 'USD', onClose, onSave }) {
             </select>
           </div>
 
+          <div className="form-group">
+            <label className="form-label">Region</label>
+            <select
+              name="region"
+              className="form-select"
+              value={formData.region}
+              onChange={handleChange}
+            >
+              <option value="None">None</option>
+              <option value="PAL">PAL</option>
+              <option value="NTSC">NTSC</option>
+              <option value="NTSC-J">NTSC-J (Japan)</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
 
           <div className="form-row">
             <div className="form-group">

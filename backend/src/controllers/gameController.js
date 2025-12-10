@@ -44,7 +44,7 @@ export async function createGame(req, res) {
       purchase_date, sale_date, condition, notes,
       igdb_id, igdb_cover_url, igdb_release_date,
       purchase_value_currency, market_value_currency, selling_value_currency, sold_value_currency,
-      posted_online
+      posted_online, region
     } = req.body;
 
     if (!name || !platform) {
@@ -68,7 +68,8 @@ export async function createGame(req, res) {
       market_value_currency || 'USD',
       selling_value_currency || 'USD',
       sold_value_currency || 'USD',
-      posted_online ? 1 : 0
+      posted_online ? 1 : 0,
+      region || 'PAL'
     );
 
     const newGame = statements.getGameById.get(result.lastInsertRowid);
@@ -95,7 +96,7 @@ export async function updateGame(req, res) {
       purchase_date, sale_date, condition, notes,
       igdb_id, igdb_cover_url, igdb_release_date,
       purchase_value_currency, market_value_currency, selling_value_currency, sold_value_currency,
-      posted_online
+      posted_online, region
     } = req.body;
 
     if (!name || !platform) {
@@ -126,6 +127,7 @@ export async function updateGame(req, res) {
       selling_value_currency || 'USD',
       sold_value_currency || 'USD',
       posted_online ? 1 : 0,
+      region || 'PAL',
       req.params.id
     );
 
@@ -186,8 +188,8 @@ export async function refreshMarketValue(req, res) {
       return res.status(404).json({ error: 'Game not found' });
     }
 
-    // Fetch new market value
-    const marketData = await getMarketValue(game.name, game.platform);
+    // Fetch new market value with condition and region
+    const marketData = await getMarketValue(game.name, game.platform, game.condition, game.region);
 
     // Only update if we got valid data, otherwise leave as is
     if (marketData.market_value !== null) {
@@ -240,7 +242,7 @@ export async function exportToCSV(req, res) {
 
     // Define CSV columns
     const columns = [
-      'id', 'name', 'platform', 'purchase_value', 'market_value',
+      'id', 'name', 'platform', 'region', 'purchase_value', 'market_value',
       'selling_value', 'sold_value', 'purchase_date', 'sale_date',
       'condition', 'notes', 'igdb_id', 'igdb_cover_url', 'igdb_release_date',
       'purchase_value_currency', 'market_value_currency',
@@ -352,6 +354,7 @@ export async function importFromCSV(req, res) {
         const gameData = {
           name: record.name,
           platform: record.platform,
+          region: record.region || 'PAL',
           purchase_value: record.purchase_value ? parseFloat(record.purchase_value) : null,
           market_value: record.market_value ? parseFloat(record.market_value) : null,
           selling_value: record.selling_value ? parseFloat(record.selling_value) : null,
@@ -391,6 +394,7 @@ export async function importFromCSV(req, res) {
             gameData.selling_value_currency,
             gameData.sold_value_currency,
             gameData.posted_online,
+            gameData.region,
             duplicate.id
           );
           results.updated++;
@@ -414,7 +418,8 @@ export async function importFromCSV(req, res) {
             gameData.market_value_currency,
             gameData.selling_value_currency,
             gameData.sold_value_currency,
-            gameData.posted_online
+            gameData.posted_online,
+            gameData.region
           );
 
           // Record price history if market value is provided

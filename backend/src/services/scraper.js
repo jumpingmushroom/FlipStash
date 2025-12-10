@@ -26,12 +26,42 @@ function randomDelay(min = 1000, max = 3000) {
 }
 
 /**
+ * Map region to PriceCharting search prefix
+ */
+function mapRegionToPriceCharting(region) {
+  const regionMap = {
+    'PAL': 'PAL',
+    'NTSC-J': 'JP',
+    'NTSC': '',
+    'None': '',
+    'Other': ''
+  };
+  return regionMap[region] || '';
+}
+
+/**
+ * Map condition to PriceCharting column name
+ */
+function mapConditionToPriceCharting(condition) {
+  const conditionMap = {
+    'Sealed': 'New',
+    'CIB (Complete in Box)': 'Complete',
+    'Loose': 'Loose',
+    'Box Only': 'Box Only',
+    'Manual Only': 'Manual Only'
+  };
+  return conditionMap[condition] || 'Complete'; // Default to Complete if no condition
+}
+
+/**
  * Scrape price from PriceCharting.com
  * @param {string} gameName - Name of the game
  * @param {string} platform - Gaming platform
+ * @param {string} condition - Game condition (Sealed, CIB, Loose, Box Only, Manual Only)
+ * @param {string} region - Game region (PAL, NTSC, NTSC-J, None, Other)
  * @returns {number|null} - Price in USD or null if not found
  */
-async function scrapePriceCharting(gameName, platform) {
+async function scrapePriceCharting(gameName, platform, condition = 'CIB (Complete in Box)', region = 'PAL') {
   let browser;
   try {
     browser = await createBrowser();
@@ -48,12 +78,17 @@ async function scrapePriceCharting(gameName, platform) {
       'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
     });
 
+    // Build search query with region prefix
+    const regionPrefix = mapRegionToPriceCharting(region);
+    const searchQuery = regionPrefix ? `${regionPrefix} ${gameName} ${platform}` : `${gameName} ${platform}`;
+
+    console.log(`PriceCharting search query: "${searchQuery}"`);
+
     // Navigate to PriceCharting
     await page.goto('https://www.pricecharting.com/', { waitUntil: 'networkidle2', timeout: 30000 });
     await randomDelay(1000, 2000);
 
     // Search for the game
-    const searchQuery = `${gameName} ${platform}`;
     await page.type('input[name="q"]', searchQuery, { delay: 100 });
     await randomDelay(500, 1000);
 
@@ -65,25 +100,80 @@ async function scrapePriceCharting(gameName, platform) {
 
     await randomDelay(1000, 2000);
 
-    // Try to find price - PriceCharting shows prices in a table
-    const price = await page.evaluate(() => {
-      // Look for the "Complete" price which is most relevant
-      const rows = Array.from(document.querySelectorAll('tr'));
-      for (const row of rows) {
+    // Map condition to column name
+    const targetCondition = mapConditionToPriceCharting(condition);
+    console.log(`Looking for condition: ${targetCondition}`);
+
+    // Try to find price based on condition
+    const price = await page.evaluate((targetCondition, regionPrefix) => {
+      // First, try to find the price table
+      const table = document.querySelector('table#games_table, table.prices');
+
+      if (!table) {
+        console.log('Price table not found');
+        return null;
+      }
+
+      // Find the header row to locate the correct column
+      const headerRow = table.querySelector('thead tr, tr:first-child');
+      if (!headerRow) {
+        console.log('Header row not found');
+        return null;
+      }
+
+      const headers = Array.from(headerRow.querySelectorAll('th, td'));
+      let targetColumnIndex = -1;
+
+      // Find the column index for the target condition
+      for (let i = 0; i < headers.length; i++) {
+        const headerText = headers[i].textContent.trim();
+        if (headerText.includes(targetCondition)) {
+          targetColumnIndex = i;
+          console.log(`Found ${targetCondition} at column ${i}`);
+          break;
+        }
+      }
+
+      if (targetColumnIndex === -1) {
+        console.log(`Column for ${targetCondition} not found`);
+        return null;
+      }
+
+      // Find the first data row that matches the region
+      const dataRows = Array.from(table.querySelectorAll('tbody tr, tr:not(:first-child)'));
+
+      for (const row of dataRows) {
         const cells = Array.from(row.querySelectorAll('td'));
-        if (cells.length >= 2) {
-          // Try to find a price cell
-          for (const cell of cells) {
-            const text = cell.textContent.trim();
-            const match = text.match(/\$([0-9,]+\.?[0-9]*)/);
-            if (match) {
-              return parseFloat(match[1].replace(',', ''));
-            }
+
+        if (cells.length > targetColumnIndex) {
+          // Check if this row matches the region (if applicable)
+          const firstCell = cells[0]?.textContent.trim() || '';
+
+          // If we're looking for a specific region, check the "Set" column
+          if (regionPrefix) {
+            // Look for region indicator in the set column or first cell
+            const rowText = firstCell.toLowerCase();
+            const regionLower = regionPrefix.toLowerCase();
+
+            // Check if this row is for the correct region
+            if (regionPrefix === 'PAL' && !rowText.includes('pal')) continue;
+            if (regionPrefix === 'JP' && !rowText.includes('jp') && !rowText.includes('japan')) continue;
+          }
+
+          // Extract price from the target column
+          const priceCell = cells[targetColumnIndex];
+          const priceText = priceCell?.textContent.trim() || '';
+          const match = priceText.match(/\$([0-9,]+\.?[0-9]*)/);
+
+          if (match) {
+            console.log(`Found price: $${match[1]}`);
+            return parseFloat(match[1].replace(/,/g, ''));
           }
         }
       }
+
       return null;
-    });
+    }, targetCondition, regionPrefix);
 
     return price;
   } catch (error) {
@@ -118,9 +208,13 @@ async function scrapeFinnNo(gameName, platform) {
       'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
     });
 
-    // Navigate to Finn.no
+    // Navigate to Finn.no recommerce games category
     const searchQuery = encodeURIComponent(`${gameName} ${platform}`);
-    await page.goto(`https://www.finn.no/bap/forsale/search.html?q=${searchQuery}`, {
+    const finnUrl = `https://www.finn.no/recommerce/forsale/search?product_category=2.93.3905.64&q=${searchQuery}`;
+
+    console.log(`Finn.no URL: ${finnUrl}`);
+
+    await page.goto(finnUrl, {
       waitUntil: 'networkidle2',
       timeout: 30000
     });
@@ -129,22 +223,40 @@ async function scrapeFinnNo(gameName, platform) {
 
     // Extract prices from search results
     const prices = await page.evaluate(() => {
-      const priceElements = Array.from(document.querySelectorAll('[class*="price"], .ads__unit__content__price'));
       const prices = [];
 
-      for (const element of priceElements) {
-        const text = element.textContent.trim();
-        const match = text.match(/([0-9\s]+)(?:\s*kr)?/);
-        if (match) {
-          const price = parseFloat(match[1].replace(/\s/g, ''));
-          if (price > 0 && price < 100000) { // Sanity check
-            prices.push(price);
+      // Try multiple selectors for price elements
+      const selectors = [
+        '[class*="price"]',
+        '[data-testid*="price"]',
+        '.ads__unit__content__price',
+        '.text-18',
+        '.text-20',
+        'span[class*="Price"]'
+      ];
+
+      for (const selector of selectors) {
+        const priceElements = document.querySelectorAll(selector);
+
+        for (const element of priceElements) {
+          const text = element.textContent.trim();
+          // Match Norwegian number format (spaces as thousand separators)
+          const match = text.match(/([0-9\s]+)\s*kr/i);
+
+          if (match) {
+            const price = parseFloat(match[1].replace(/\s/g, ''));
+            if (price > 0 && price < 100000) { // Sanity check
+              prices.push(price);
+              console.log(`Found price: ${price} kr`);
+            }
           }
         }
       }
 
       return prices;
     });
+
+    console.log(`Finn.no found ${prices.length} prices:`, prices);
 
     if (prices.length === 0) {
       return null;
@@ -168,14 +280,16 @@ async function scrapeFinnNo(gameName, platform) {
  * Priority: Finn.no (NOK) over PriceCharting (USD) to avoid mixing currencies
  * @param {string} gameName - Name of the game
  * @param {string} platform - Gaming platform
+ * @param {string} condition - Game condition (Sealed, CIB, Loose, Box Only, Manual Only)
+ * @param {string} region - Game region (PAL, NTSC, NTSC-J, None, Other)
  * @returns {Object} - Object with market_value, selling_value, and currency
  */
-export async function getMarketValue(gameName, platform) {
-  console.log(`Fetching market value for: ${gameName} (${platform})`);
+export async function getMarketValue(gameName, platform, condition = 'CIB (Complete in Box)', region = 'PAL') {
+  console.log(`Fetching market value for: ${gameName} (${platform}) - Condition: ${condition}, Region: ${region}`);
 
   // Run both scrapers in parallel
   const [priceChartingPrice, finnNoPrice] = await Promise.all([
-    scrapePriceCharting(gameName, platform),
+    scrapePriceCharting(gameName, platform, condition, region),
     scrapeFinnNo(gameName, platform)
   ]);
 
