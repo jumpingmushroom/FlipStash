@@ -80,6 +80,14 @@ try {
     console.log('Migrating database: Adding last_refresh_at column');
     db.exec(`ALTER TABLE games ADD COLUMN last_refresh_at TEXT`);
   }
+
+  // Migration: Add region column
+  if (!columns.includes('region')) {
+    console.log('Migrating database: Adding region column');
+    db.exec(`ALTER TABLE games ADD COLUMN region TEXT DEFAULT 'PAL'`);
+    // Set PAL as default for existing games
+    db.exec(`UPDATE games SET region = 'PAL' WHERE region IS NULL`);
+  }
 } catch (error) {
   console.error('Migration error:', error.message);
 }
@@ -120,8 +128,8 @@ export const statements = {
       purchase_date, sale_date, condition, notes,
       igdb_id, igdb_cover_url, igdb_release_date,
       purchase_value_currency, market_value_currency, selling_value_currency, sold_value_currency,
-      posted_online
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      posted_online, region
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `),
 
   updateGame: db.prepare(`
@@ -131,7 +139,7 @@ export const statements = {
       condition = ?, notes = ?, igdb_id = ?, igdb_cover_url = ?,
       igdb_release_date = ?,
       purchase_value_currency = ?, market_value_currency = ?, selling_value_currency = ?, sold_value_currency = ?,
-      posted_online = ?,
+      posted_online = ?, region = ?,
       updated_at = CURRENT_TIMESTAMP
     WHERE id = ?
   `),
