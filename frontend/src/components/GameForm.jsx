@@ -96,7 +96,7 @@ const normalizePlatform = (igdbPlatform) => {
   return platformMap[igdbPlatform] || 'Other';
 };
 
-function GameForm({ game, onClose, onSave }) {
+function GameForm({ game, currency = 'USD', onClose, onSave }) {
   const [formData, setFormData] = useState({
     name: '',
     platform: '',
@@ -331,6 +331,19 @@ function GameForm({ game, onClose, onSave }) {
               ))}
             </select>
           </div>
+
+          {currency !== 'USD' && (
+            <div style={{
+              padding: '0.75rem',
+              backgroundColor: 'var(--surface-color)',
+              borderRadius: '4px',
+              fontSize: '0.9rem',
+              color: 'var(--text-secondary)',
+              marginBottom: '1rem'
+            }}>
+              Note: Enter all values in USD. They will be displayed in {currency} throughout the app.
+            </div>
+          )}
 
           <div className="form-row">
             <div className="form-group">

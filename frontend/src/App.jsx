@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import GameCard from './components/GameCard';
 import GameForm from './components/GameForm';
+import Settings from './components/Settings';
 import { gamesApi } from './services/api';
+import { loadCurrencyPreference, saveCurrencyPreference, convertFromUSD, formatCurrency } from './services/currency';
 import './App.css';
 
 function App() {
@@ -11,6 +13,8 @@ function App() {
   const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingGame, setEditingGame] = useState(null);
+  const [showSettings, setShowSettings] = useState(false);
+  const [currency, setCurrency] = useState(loadCurrencyPreference());
 
   // Filters and sorting
   const [searchQuery, setSearchQuery] = useState('');
@@ -151,25 +155,39 @@ function App() {
     loadGames();
   };
 
+  const handleCurrencyChange = (newCurrency) => {
+    setCurrency(newCurrency);
+    saveCurrencyPreference(newCurrency);
+  };
+
   // Get unique platforms for filter dropdown
   const platforms = [...new Set(games.map(g => g.platform))].sort();
 
   return (
     <div className="app">
       <header className="header">
-        <h1>🎮 FlipStash</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <h1>🎮 FlipStash</h1>
+          <button
+            onClick={() => setShowSettings(true)}
+            className="btn btn-secondary btn-small"
+            style={{ padding: '0.5rem 1rem' }}
+          >
+            ⚙️ Settings
+          </button>
+        </div>
         <div className="header-stats">
           <div className="stat-item">
             <div className="stat-value">{stats.totalGames}</div>
             <div className="stat-label">Total Games</div>
           </div>
           <div className="stat-item">
-            <div className="stat-value">${stats.totalValue.toFixed(2)}</div>
+            <div className="stat-value">{formatCurrency(convertFromUSD(stats.totalValue, currency), currency)}</div>
             <div className="stat-label">Collection Value</div>
           </div>
           <div className="stat-item">
             <div className="stat-value" style={{ color: stats.totalProfit >= 0 ? 'var(--success-color)' : 'var(--danger-color)' }}>
-              {stats.totalProfit >= 0 ? '+' : ''}${stats.totalProfit.toFixed(2)}
+              {stats.totalProfit >= 0 ? '+' : ''}{formatCurrency(convertFromUSD(Math.abs(stats.totalProfit), currency), currency)}
             </div>
             <div className="stat-label">Total Profit</div>
           </div>
@@ -251,6 +269,7 @@ function App() {
               <GameCard
                 key={game.id}
                 game={game}
+                currency={currency}
                 onEdit={handleEditGame}
                 onDelete={handleDeleteGame}
                 onRefreshMarket={handleRefreshMarket}
@@ -263,8 +282,17 @@ function App() {
       {showForm && (
         <GameForm
           game={editingGame}
+          currency={currency}
           onClose={handleFormClose}
           onSave={handleFormSave}
+        />
+      )}
+
+      {showSettings && (
+        <Settings
+          currentCurrency={currency}
+          onCurrencyChange={handleCurrencyChange}
+          onClose={() => setShowSettings(false)}
         />
       )}
     </div>
