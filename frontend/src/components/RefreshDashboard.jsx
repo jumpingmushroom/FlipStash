@@ -112,73 +112,88 @@ export default function RefreshDashboard() {
         </button>
       </div>
 
-      <div className="dashboard-grid">
-        {sortedGames.map((game) => {
-          const status = getRefreshStatus(game);
-          const hasPriceData = game.price_change_percentage !== null;
+      <div className="dashboard-list">
+        <table className="dashboard-table">
+          <thead>
+            <tr>
+              <th>Game</th>
+              <th>Last Updated</th>
+              <th>Current Value</th>
+              <th>Price Change</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sortedGames.map((game) => {
+              const status = getRefreshStatus(game);
+              const hasPriceData = game.price_change_percentage !== null;
 
-          return (
-            <div key={game.id} className="dashboard-card">
-              <div className="dashboard-card-header">
-                {game.igdb_cover_url ? (
-                  <img src={game.igdb_cover_url} alt={game.name} className="dashboard-cover" />
-                ) : (
-                  <div className="dashboard-cover-placeholder">🎮</div>
-                )}
-                <div className="dashboard-game-info">
-                  <h3 className="dashboard-game-title">{game.name}</h3>
-                  <span className="dashboard-game-platform">{game.platform}</span>
-                </div>
-              </div>
-
-              <div className="dashboard-card-body">
-                <div className="dashboard-value-row">
-                  <span className="dashboard-label">Current Value:</span>
-                  <span className="dashboard-value">
-                    ${game.market_value?.toFixed(2) || 'N/A'}
-                  </span>
-                </div>
-
-                {hasPriceData && (
-                  <div className="dashboard-value-row">
-                    <span className="dashboard-label">Price Change:</span>
-                    <span className={`dashboard-value ${game.price_change >= 0 ? 'positive' : 'negative'}`}>
-                      {game.price_change >= 0 ? '+' : ''}${game.price_change.toFixed(2)}
-                      {' '}
-                      ({game.price_change_percentage >= 0 ? '+' : ''}{game.price_change_percentage.toFixed(2)}%)
-                    </span>
-                  </div>
-                )}
-
-                <div className="dashboard-refresh-info">
-                  <span className={`refresh-status ${status.class}`}>
-                    {status.text}
-                  </span>
-                  {game.last_refresh_at && (
-                    <span className="refresh-time">
-                      {new Date(game.last_refresh_at).toLocaleString()}
-                    </span>
-                  )}
-                </div>
-
-                {game.market_value && (
-                  <div className="dashboard-mini-chart">
-                    <PriceChart gameId={game.id} mode="mini" />
-                  </div>
-                )}
-              </div>
-
-              <div className="dashboard-card-footer">
-                <button
-                  onClick={() => setSelectedGame(game)}
-                  className="btn-link"
-                >
-                  View Detailed History →
-                </button>
-              </div>
-            </div>
-          );
-        })}
+              return (
+                <tr key={game.id} className="dashboard-row">
+                  <td className="game-info-cell">
+                    <div className="game-info-container">
+                      {game.igdb_cover_url ? (
+                        <img src={game.igdb_cover_url} alt={game.name} className="game-thumbnail" />
+                      ) : (
+                        <div className="game-thumbnail-placeholder">🎮</div>
+                      )}
+                      <div className="game-text-info">
+                        <div className="game-name">{game.name}</div>
+                        <div className="game-platform">{game.platform}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="last-updated-cell">
+                    {game.last_refresh_at ? (
+                      <div className="last-updated-container">
+                        <div className="last-updated-date">
+                          {new Date(game.last_refresh_at).toLocaleDateString()}
+                        </div>
+                        <div className="last-updated-time">
+                          {new Date(game.last_refresh_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </div>
+                        <span className={`refresh-status-badge ${status.class}`}>
+                          {status.text}
+                        </span>
+                      </div>
+                    ) : (
+                      <span className={`refresh-status-badge ${status.class}`}>
+                        {status.text}
+                      </span>
+                    )}
+                  </td>
+                  <td className="value-cell">
+                    <div className="current-value">
+                      ${game.market_value?.toFixed(2) || 'N/A'}
+                    </div>
+                  </td>
+                  <td className="price-change-cell">
+                    {hasPriceData ? (
+                      <div className={`price-change ${game.price_change >= 0 ? 'positive' : 'negative'}`}>
+                        <div className="price-change-amount">
+                          {game.price_change >= 0 ? '+' : ''}${game.price_change.toFixed(2)}
+                        </div>
+                        <div className="price-change-percentage">
+                          ({game.price_change_percentage >= 0 ? '+' : ''}{game.price_change_percentage.toFixed(2)}%)
+                        </div>
+                      </div>
+                    ) : (
+                      <span className="no-data">—</span>
+                    )}
+                  </td>
+                  <td className="actions-cell">
+                    <button
+                      onClick={() => setSelectedGame(game)}
+                      className="btn-link"
+                    >
+                      View History
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
 
       {sortedGames.length === 0 && (

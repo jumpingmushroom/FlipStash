@@ -1,9 +1,29 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { convertCurrency, formatCurrency } from '../services/currency';
 import PriceChart from './PriceChart';
+import api from '../services/api';
 
 function GameCard({ game, currency = 'USD', onEdit, onDelete, onRefreshMarket }) {
   const [showPriceHistory, setShowPriceHistory] = useState(false);
+  const [priceHistoryCount, setPriceHistoryCount] = useState(0);
+
+  useEffect(() => {
+    // Fetch price history count to determine if we should show the chart
+    const fetchPriceHistoryCount = async () => {
+      if (game.market_value !== null) {
+        try {
+          const response = await api.get(`/games/${game.id}/price-history`);
+          setPriceHistoryCount(response.data?.history?.length || 0);
+        } catch (err) {
+          console.error('Error fetching price history count:', err);
+          setPriceHistoryCount(0);
+        }
+      }
+    };
+
+    fetchPriceHistoryCount();
+  }, [game.id, game.last_refresh_at, game.market_value]);
+
   const calculateProfit = () => {
     if (game.sold_value && game.purchase_value) {
       // Convert both values to the same currency (USD) for calculation
@@ -107,8 +127,8 @@ function GameCard({ game, currency = 'USD', onEdit, onDelete, onRefreshMarket })
         </div>
       )}
 
-      {/* Price History Section */}
-      {game.market_value !== null && (
+      {/* Price History Section - only show if there are multiple price entries */}
+      {game.market_value !== null && priceHistoryCount > 1 && (
         <div className="price-history-section">
           <div className="price-history-header">
             <span className="price-history-title">Price Trend</span>
