@@ -314,7 +314,7 @@ async function autoFetchIGDBMetadata(gameName, platform) {
  */
 export async function importFromCSV(req, res) {
   try {
-    const { csv: csvData, mode } = req.body;
+    const { csv: csvData, mode, defaultCurrency } = req.body;
 
     if (!csvData) {
       return res.status(400).json({ error: 'CSV data is required' });
@@ -421,10 +421,10 @@ export async function importFromCSV(req, res) {
           igdb_id: igdbData.igdb_id ? parseInt(igdbData.igdb_id) : null,
           igdb_cover_url: igdbData.igdb_cover_url,
           igdb_release_date: igdbData.igdb_release_date,
-          purchase_value_currency: record.purchase_value_currency || 'USD',
-          market_value_currency: record.market_value_currency || 'USD',
-          selling_value_currency: record.selling_value_currency || 'USD',
-          sold_value_currency: record.sold_value_currency || 'USD',
+          purchase_value_currency: record.purchase_value_currency || defaultCurrency || 'USD',
+          market_value_currency: record.market_value_currency || defaultCurrency || 'USD',
+          selling_value_currency: record.selling_value_currency || defaultCurrency || 'USD',
+          sold_value_currency: record.sold_value_currency || defaultCurrency || 'USD',
           posted_online: record.posted_online === '1' || record.posted_online === 'true' ? 1 : 0,
           acquisition_source: record.acquisition_source || null
         };

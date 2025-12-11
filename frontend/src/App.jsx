@@ -171,6 +171,7 @@ function App() {
             path="/tools"
             element={
               <ToolsPage
+                currency={currency}
                 onDataChange={loadGames}
               />
             }
