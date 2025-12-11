@@ -11,11 +11,14 @@ function HomePage({ games, currency, onEdit, onDelete, onRefreshMarket, onGamesU
   const [platformFilter, setPlatformFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [postedFilter, setPostedFilter] = useState('');
+  const [acquisitionSourceFilter, setAcquisitionSourceFilter] = useState('');
   const [sortBy, setSortBy] = useState('created_at');
+  const [selectedGameIds, setSelectedGameIds] = useState([]);
+  const [showBatchActions, setShowBatchActions] = useState(false);
 
   useEffect(() => {
     applyFiltersAndSort();
-  }, [games, searchQuery, platformFilter, statusFilter, postedFilter, sortBy]);
+  }, [games, searchQuery, platformFilter, statusFilter, postedFilter, acquisitionSourceFilter, sortBy]);
 
   const applyFiltersAndSort = () => {
     let filtered = [...games];
@@ -47,6 +50,11 @@ function HomePage({ games, currency, onEdit, onDelete, onRefreshMarket, onGamesU
       filtered = filtered.filter(game => game.posted_online === 0 || game.posted_online === null);
     }
 
+    // Acquisition source filter
+    if (acquisitionSourceFilter) {
+      filtered = filtered.filter(game => game.acquisition_source === acquisitionSourceFilter);
+    }
+
     // Sort
     filtered.sort((a, b) => {
       switch (sortBy) {
@@ -73,8 +81,69 @@ function HomePage({ games, currency, onEdit, onDelete, onRefreshMarket, onGamesU
     navigate(`/edit-game/${game.id}`, { state: { game } });
   };
 
-  // Get unique platforms for filter dropdown
+  const handleGameSelection = (gameId, isSelected) => {
+    if (isSelected) {
+      setSelectedGameIds(prev => [...prev, gameId]);
+    } else {
+      setSelectedGameIds(prev => prev.filter(id => id !== gameId));
+    }
+  };
+
+  const handleSelectAll = () => {
+    if (selectedGameIds.length === filteredGames.length) {
+      setSelectedGameIds([]);
+    } else {
+      setSelectedGameIds(filteredGames.map(g => g.id));
+    }
+  };
+
+  const handleBatchPostedOnline = async (posted) => {
+    if (selectedGameIds.length === 0) return;
+
+    try {
+      await gamesApi.batchUpdatePostedOnline(selectedGameIds, posted);
+      setSelectedGameIds([]);
+      onGamesUpdate();
+    } catch (err) {
+      alert('Failed to update posted online status');
+      console.error(err);
+    }
+  };
+
+  const handleBatchCondition = async () => {
+    if (selectedGameIds.length === 0) return;
+
+    const condition = prompt('Enter condition (Sealed, CIB (Complete in Box), Loose, Box Only, Manual Only):');
+    if (!condition) return;
+
+    try {
+      await gamesApi.batchUpdateCondition(selectedGameIds, condition);
+      setSelectedGameIds([]);
+      onGamesUpdate();
+    } catch (err) {
+      alert('Failed to update condition');
+      console.error(err);
+    }
+  };
+
+  const handleBatchDelete = async () => {
+    if (selectedGameIds.length === 0) return;
+
+    if (!window.confirm(`Are you sure you want to delete ${selectedGameIds.length} game(s)?`)) return;
+
+    try {
+      await gamesApi.batchDelete(selectedGameIds);
+      setSelectedGameIds([]);
+      onGamesUpdate();
+    } catch (err) {
+      alert('Failed to delete games');
+      console.error(err);
+    }
+  };
+
+  // Get unique platforms and acquisition sources for filter dropdowns
   const platforms = [...new Set(games.map(g => g.platform))].sort();
+  const acquisitionSources = [...new Set(games.map(g => g.acquisition_source).filter(s => s))].sort();
 
   return (
     <div className="home-page">
@@ -121,6 +190,17 @@ function HomePage({ games, currency, onEdit, onDelete, onRefreshMarket, onGamesU
 
           <select
             className="select"
+            value={acquisitionSourceFilter}
+            onChange={(e) => setAcquisitionSourceFilter(e.target.value)}
+          >
+            <option value="">All Sources</option>
+            {acquisitionSources.map(source => (
+              <option key={source} value={source}>{source}</option>
+            ))}
+          </select>
+
+          <select
+            className="select"
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
           >
@@ -135,6 +215,54 @@ function HomePage({ games, currency, onEdit, onDelete, onRefreshMarket, onGamesU
           + Add Game
         </button>
       </div>
+
+      {/* Batch Actions Bar */}
+      {selectedGameIds.length > 0 && (
+        <div style={{
+          padding: '1rem',
+          marginBottom: '1rem',
+          backgroundColor: 'var(--card-bg)',
+          borderRadius: '8px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '1rem',
+          flexWrap: 'wrap'
+        }}>
+          <span style={{ fontWeight: '500' }}>
+            {selectedGameIds.length} game(s) selected
+          </span>
+          <button
+            onClick={handleSelectAll}
+            className="btn btn-secondary btn-small"
+          >
+            {selectedGameIds.length === filteredGames.length ? 'Deselect All' : 'Select All'}
+          </button>
+          <button
+            onClick={() => handleBatchPostedOnline(true)}
+            className="btn btn-secondary btn-small"
+          >
+            Mark as Posted
+          </button>
+          <button
+            onClick={() => handleBatchPostedOnline(false)}
+            className="btn btn-secondary btn-small"
+          >
+            Mark as Not Posted
+          </button>
+          <button
+            onClick={handleBatchCondition}
+            className="btn btn-secondary btn-small"
+          >
+            Update Condition
+          </button>
+          <button
+            onClick={handleBatchDelete}
+            className="btn btn-danger btn-small"
+          >
+            Delete Selected
+          </button>
+        </div>
+      )}
 
       {filteredGames.length === 0 ? (
         <div className="empty-state">
@@ -158,6 +286,8 @@ function HomePage({ games, currency, onEdit, onDelete, onRefreshMarket, onGamesU
               onEdit={handleEditGame}
               onDelete={onDelete}
               onRefreshMarket={onRefreshMarket}
+              isSelected={selectedGameIds.includes(game.id)}
+              onSelect={(isSelected) => handleGameSelection(game.id, isSelected)}
             />
           ))}
         </div>

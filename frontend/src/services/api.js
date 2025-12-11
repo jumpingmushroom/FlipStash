@@ -19,7 +19,11 @@ export const gamesApi = {
   searchIGDB: (query) => api.get('/games/igdb/search', { params: { query } }),
   refreshMarketValue: (id) => api.post(`/games/${id}/refresh-market-value`),
   exportCSV: () => api.get('/games/export/csv', { responseType: 'blob' }),
-  importCSV: (csvData, mode) => api.post('/games/import/csv', { csv: csvData, mode })
+  importCSV: (csvData, mode) => api.post('/games/import/csv', { csv: csvData, mode }),
+  getAcquisitionSources: () => api.get('/games/acquisition-sources'),
+  batchUpdatePostedOnline: (gameIds, postedOnline) => api.post('/games/batch/posted-online', { gameIds, postedOnline }),
+  batchUpdateCondition: (gameIds, condition) => api.post('/games/batch/condition', { gameIds, condition }),
+  batchDelete: (gameIds) => api.post('/games/batch/delete', { gameIds })
 };
 
 export default api;

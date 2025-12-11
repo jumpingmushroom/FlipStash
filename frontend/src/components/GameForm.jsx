@@ -117,7 +117,8 @@ function GameForm({ game, currency = 'USD', onClose, onSave }) {
     igdb_id: '',
     igdb_cover_url: '',
     igdb_release_date: '',
-    posted_online: false
+    posted_online: false,
+    acquisition_source: ''
   });
 
   const [igdbQuery, setIgdbQuery] = useState('');
@@ -126,6 +127,20 @@ function GameForm({ game, currency = 'USD', onClose, onSave }) {
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isFetchingMarketValue, setIsFetchingMarketValue] = useState(false);
+  const [acquisitionSources, setAcquisitionSources] = useState([]);
+
+  // Fetch acquisition sources for autocomplete
+  useEffect(() => {
+    const fetchAcquisitionSources = async () => {
+      try {
+        const response = await gamesApi.getAcquisitionSources();
+        setAcquisitionSources(response.data);
+      } catch (err) {
+        console.error('Failed to fetch acquisition sources:', err);
+      }
+    };
+    fetchAcquisitionSources();
+  }, []);
 
   useEffect(() => {
     if (game) {
@@ -144,7 +159,8 @@ function GameForm({ game, currency = 'USD', onClose, onSave }) {
         igdb_id: game.igdb_id || '',
         igdb_cover_url: game.igdb_cover_url || '',
         igdb_release_date: game.igdb_release_date || '',
-        posted_online: game.posted_online === 1 || game.posted_online === true
+        posted_online: game.posted_online === 1 || game.posted_online === true,
+        acquisition_source: game.acquisition_source || ''
       });
     }
   }, [game]);
@@ -387,6 +403,24 @@ function GameForm({ game, currency = 'USD', onClose, onSave }) {
                 onChange={handleChange}
               />
             </div>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Acquisition Source</label>
+            <input
+              type="text"
+              name="acquisition_source"
+              className="form-input"
+              value={formData.acquisition_source}
+              onChange={handleChange}
+              list="acquisition-sources-list"
+              placeholder="e.g., eBay, GameStop, Garage Sale, Trade, Gift..."
+            />
+            <datalist id="acquisition-sources-list">
+              {acquisitionSources.map((source, index) => (
+                <option key={index} value={source} />
+              ))}
+            </datalist>
           </div>
 
           <div className="form-row">

@@ -7,3 +7,71 @@
   flex-direction: column;
   gap: 2rem;
 }
+
+/* Acquisition Source Analytics */
+.acquisition-source-breakdown {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1rem;
+}
+
+.source-card {
+  padding: 1rem;
+  background-color: var(--card-bg);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+}
+
+.source-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.source-name {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.source-count {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  background-color: var(--bg-secondary);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+}
+
+.source-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.source-stat {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.9rem;
+}
+
+.source-label {
+  color: var(--text-secondary);
+}
+
+.source-value {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.source-value.profit {
+  color: var(--success-color);
+}
+
+.source-value.loss {
+  color: var(--danger-color);
+}

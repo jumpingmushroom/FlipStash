@@ -8,7 +8,11 @@ import {
   searchGames,
   refreshMarketValue,
   exportToCSV,
-  importFromCSV
+  importFromCSV,
+  getAcquisitionSources,
+  batchUpdatePostedOnline,
+  batchUpdateCondition,
+  batchDeleteGames
 } from '../controllers/gameController.js';
 import {
   getGamePriceHistory,
@@ -22,6 +26,10 @@ router.get('/igdb/search', searchGames);
 router.get('/refresh-dashboard', getRefreshDashboard);
 router.get('/export/csv', exportToCSV);
 router.post('/import/csv', importFromCSV);
+router.get('/acquisition-sources', getAcquisitionSources);
+router.post('/batch/posted-online', batchUpdatePostedOnline);
+router.post('/batch/condition', batchUpdateCondition);
+router.post('/batch/delete', batchDeleteGames);
 
 // CRUD routes
 router.get('/', getAllGames);

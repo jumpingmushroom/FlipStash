@@ -64,6 +64,38 @@ function StatisticsPage({ games, currency }) {
       conditionStats[condition] = (conditionStats[condition] || 0) + 1;
     });
 
+    // Acquisition source analytics
+    const acquisitionSourceStats = {};
+    gamesWithUSD.forEach(g => {
+      const source = g.acquisition_source || 'Unknown';
+      if (!acquisitionSourceStats[source]) {
+        acquisitionSourceStats[source] = {
+          count: 0,
+          totalPurchase: 0,
+          totalSold: 0,
+          totalProfit: 0,
+          games: []
+        };
+      }
+      acquisitionSourceStats[source].count++;
+      acquisitionSourceStats[source].totalPurchase += g.purchaseUSD || 0;
+      acquisitionSourceStats[source].games.push(g);
+
+      if (g.sold_value !== null) {
+        acquisitionSourceStats[source].totalSold += g.soldUSD || 0;
+        acquisitionSourceStats[source].totalProfit += (g.soldUSD || 0) - (g.purchaseUSD || 0);
+      }
+    });
+
+    // Calculate average profit per source
+    Object.keys(acquisitionSourceStats).forEach(source => {
+      const data = acquisitionSourceStats[source];
+      const soldCount = data.games.filter(g => g.sold_value !== null).length;
+      data.avgProfit = soldCount > 0 ? data.totalProfit / soldCount : 0;
+      data.avgPurchase = data.count > 0 ? data.totalPurchase / data.count : 0;
+      data.soldCount = soldCount;
+    });
+
     // Most valuable game
     const mostValuableGame = availableGames.reduce((max, g) =>
       (g.marketUSD || 0) > (max?.marketUSD || 0) ? g : max, null);
@@ -142,6 +174,7 @@ function StatisticsPage({ games, currency }) {
       roi,
       platformStats,
       conditionStats,
+      acquisitionSourceStats,
       mostValuableGame,
       bestProfitSale,
       top5Valuable,
@@ -466,6 +499,75 @@ function StatisticsPage({ games, currency }) {
               ))}
           </div>
         </div>
+
+        {/* Acquisition Source Analytics */}
+        {stats.acquisitionSourceStats && Object.keys(stats.acquisitionSourceStats).length > 0 && (
+          <div className="stats-section">
+            <h2>🛒 Acquisition Source Analytics</h2>
+            <div className="acquisition-source-breakdown">
+              {Object.entries(stats.acquisitionSourceStats)
+                .sort((a, b) => b[1].avgProfit - a[1].avgProfit)
+                .map(([source, data]) => (
+                  <div key={source} className="source-card">
+                    <div className="source-header">
+                      <h3 className="source-name">{source}</h3>
+                      <div className="source-count">{data.count} games</div>
+                    </div>
+                    <div className="source-stats">
+                      <div className="source-stat">
+                        <span className="source-label">Avg Purchase:</span>
+                        <span className="source-value">{formatCurrency(convertCurrency(data.avgPurchase, 'USD', currency), currency)}</span>
+                      </div>
+                      <div className="source-stat">
+                        <span className="source-label">Avg Profit:</span>
+                        <span className={`source-value ${data.avgProfit >= 0 ? 'profit' : 'loss'}`}>
+                          {data.avgProfit >= 0 ? '+' : ''}{formatCurrency(convertCurrency(data.avgProfit, 'USD', currency), currency)}
+                        </span>
+                      </div>
+                      <div className="source-stat">
+                        <span className="source-label">Total Spent:</span>
+                        <span className="source-value">{formatCurrency(convertCurrency(data.totalPurchase, 'USD', currency), currency)}</span>
+                      </div>
+                      <div className="source-stat">
+                        <span className="source-label">Total Profit:</span>
+                        <span className={`source-value ${data.totalProfit >= 0 ? 'profit' : 'loss'}`}>
+                          {data.totalProfit >= 0 ? '+' : ''}{formatCurrency(convertCurrency(data.totalProfit, 'USD', currency), currency)}
+                        </span>
+                      </div>
+                      <div className="source-stat">
+                        <span className="source-label">Games Sold:</span>
+                        <span className="source-value">{data.soldCount} / {data.count}</span>
+                      </div>
+                      {data.soldCount > 0 && data.totalPurchase > 0 && (
+                        <div className="source-stat">
+                          <span className="source-label">ROI:</span>
+                          <span className={`source-value ${(data.totalProfit / data.totalPurchase * 100) >= 0 ? 'profit' : 'loss'}`}>
+                            {((data.totalProfit / data.totalPurchase) * 100).toFixed(1)}%
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+            </div>
+            <div style={{ marginTop: '1rem', padding: '1rem', backgroundColor: 'var(--card-bg)', borderRadius: '8px' }}>
+              <h3 style={{ marginBottom: '0.5rem' }}>💡 Best Deals</h3>
+              <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                <strong>Best Average Profit:</strong> {
+                  Object.entries(stats.acquisitionSourceStats)
+                    .filter(([_, data]) => data.soldCount > 0)
+                    .sort((a, b) => b[1].avgProfit - a[1].avgProfit)[0]?.[0] || 'N/A'
+                }
+              </p>
+              <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                <strong>Most Acquisitions:</strong> {
+                  Object.entries(stats.acquisitionSourceStats)
+                    .sort((a, b) => b[1].count - a[1].count)[0]?.[0] || 'N/A'
+                }
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Top Games */}
         {stats.mostValuableGame && (
