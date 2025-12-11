@@ -122,6 +122,7 @@ function GameForm({ game, currency = 'USD', onClose, onSave }) {
   });
 
   const [igdbQuery, setIgdbQuery] = useState('');
+  const [igdbPlatformFilter, setIgdbPlatformFilter] = useState('');
   const [igdbResults, setIgdbResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState('');
@@ -192,8 +193,11 @@ function GameForm({ game, currency = 'USD', onClose, onSave }) {
     setIsSearching(true);
     setError('');
     try {
-      const response = await gamesApi.searchIGDB(igdbQuery);
+      const response = await gamesApi.searchIGDB(igdbQuery, igdbPlatformFilter);
       setIgdbResults(response.data);
+      if (response.data.length === 0) {
+        setError(`No results found for "${igdbQuery}"${igdbPlatformFilter ? ` on ${igdbPlatformFilter}` : ''}`);
+      }
     } catch (err) {
       setError('Failed to search IGDB. Please check your API credentials.');
       console.error(err);
@@ -284,7 +288,7 @@ function GameForm({ game, currency = 'USD', onClose, onSave }) {
           <div className="igdb-search">
             <div className="form-group">
               <label className="form-label">Search IGDB</label>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
                 <input
                   type="text"
                   className="form-input"
@@ -292,6 +296,7 @@ function GameForm({ game, currency = 'USD', onClose, onSave }) {
                   onChange={(e) => setIgdbQuery(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && searchIGDB()}
                   placeholder="Search for a game..."
+                  style={{ flex: 1 }}
                 />
                 <button
                   type="button"
@@ -301,6 +306,22 @@ function GameForm({ game, currency = 'USD', onClose, onSave }) {
                 >
                   {isSearching ? 'Searching...' : 'Search'}
                 </button>
+              </div>
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <label className="form-label" style={{ margin: 0, fontSize: '0.9rem' }}>Filter by platform:</label>
+                <select
+                  className="form-select"
+                  value={igdbPlatformFilter}
+                  onChange={(e) => setIgdbPlatformFilter(e.target.value)}
+                  style={{ flex: 1 }}
+                >
+                  <option value="">All Platforms</option>
+                  {PLATFORMS.map(platform => (
+                    <option key={platform} value={platform}>
+                      {platform}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
 

@@ -40,18 +40,102 @@ async function getAccessToken() {
 }
 
 /**
+ * Platform name to IGDB platform ID mapping
+ * Based on IGDB platform IDs: https://api-docs.igdb.com/#platform
+ */
+const PLATFORM_TO_IGDB_ID = {
+  'PlayStation 5': 167,
+  'PlayStation 4': 48,
+  'PlayStation 3': 9,
+  'PlayStation 2': 8,
+  'PlayStation 1': 7,
+  'PlayStation': 7,
+  'PSX': 7,
+  'PS1': 7,
+  'PS Vita': 46,
+  'PlayStation Vita': 46,
+  'PSP': 38,
+  'PlayStation Portable': 38,
+  'Xbox Series X/S': 169,
+  'Xbox Series X|S': 169,
+  'Xbox One': 49,
+  'Xbox 360': 12,
+  'Xbox': 11,
+  'Nintendo Switch': 130,
+  'Switch': 130,
+  'Nintendo Wii U': 41,
+  'Wii U': 41,
+  'Nintendo Wii': 5,
+  'Wii': 5,
+  'Nintendo GameCube': 21,
+  'GameCube': 21,
+  'Nintendo 64': 4,
+  'N64': 4,
+  'Super Nintendo (SNES)': 19,
+  'Super Nintendo Entertainment System': 19,
+  'SNES': 19,
+  'Nintendo Entertainment System (NES)': 18,
+  'NES': 18,
+  'Nintendo 3DS': 37,
+  '3DS': 37,
+  'Nintendo DS': 20,
+  'DS': 20,
+  'Game Boy Advance': 24,
+  'GBA': 24,
+  'Game Boy Color': 22,
+  'GBC': 22,
+  'Game Boy': 33,
+  'GB': 33,
+  'Sega Genesis': 29,
+  'Sega Mega Drive/Genesis': 29,
+  'Genesis': 29,
+  'Mega Drive': 29,
+  'Sega Dreamcast': 23,
+  'Dreamcast': 23,
+  'Sega Saturn': 32,
+  'Saturn': 32,
+  'PC': 6,
+  'PC (Microsoft Windows)': 6,
+  'Windows': 6
+};
+
+/**
+ * Get IGDB platform ID from platform name
+ * @param {string} platformName - Platform name
+ * @returns {number|null} - IGDB platform ID or null if not found
+ */
+function getPlatformId(platformName) {
+  if (!platformName) return null;
+  return PLATFORM_TO_IGDB_ID[platformName] || null;
+}
+
+/**
  * Search for games on IGDB
  * @param {string} query - Game name to search for
+ * @param {string} platform - Optional platform name to filter results
  * @returns {Array} - Array of game results
  */
-export async function searchGames(query) {
+export async function searchGames(query, platform = null) {
   const token = await getAccessToken();
   const clientId = process.env.IGDB_CLIENT_ID;
 
   try {
+    // Build the IGDB query
+    let igdbQuery = `search "${query}"; fields name, cover.url, first_release_date, platforms.name;`;
+
+    // Add platform filter if specified
+    if (platform) {
+      const platformId = getPlatformId(platform);
+      if (platformId) {
+        igdbQuery += ` where platforms = [${platformId}];`;
+      }
+    }
+
+    igdbQuery += ' limit 10;';
+
     const response = await axios.post(
       'https://api.igdb.com/v4/games',
-      `search "${query}"; fields name, cover.url, first_release_date, platforms.name; limit 10;`,
+      igdbQuery,
       {
         headers: {
           'Client-ID': clientId,
