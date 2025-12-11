@@ -1,0 +1,306 @@
+.game-detail-page {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.btn-back {
+  background: none;
+  border: none;
+  color: var(--primary-color);
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 0.5rem 0;
+  margin-bottom: 2rem;
+  transition: color 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-back:hover {
+  color: var(--primary-dark);
+  text-decoration: underline;
+}
+
+.game-detail-container {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 3rem;
+}
+
+/* Left Column */
+.game-detail-left {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.game-detail-cover {
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.game-detail-cover img {
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.game-cover-placeholder-large {
+  width: 100%;
+  aspect-ratio: 3/4;
+  background-color: var(--surface-color);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 5rem;
+  color: var(--text-secondary);
+}
+
+.game-metadata {
+  background-color: var(--surface-color);
+  border-radius: 8px;
+  padding: 2rem;
+  border: 1px solid var(--border-color);
+}
+
+.game-detail-title {
+  font-size: 2rem;
+  margin-bottom: 1.5rem;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+
+.metadata-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.metadata-label {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+.metadata-value {
+  font-size: 1.1rem;
+  color: var(--text-primary);
+}
+
+.game-platform-badge {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  background-color: var(--primary-color);
+  color: white;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 600;
+  width: fit-content;
+}
+
+.condition-badge {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  background-color: var(--secondary-color);
+  color: white;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 600;
+  width: fit-content;
+}
+
+.notes-section {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.notes-section h3 {
+  font-size: 1.1rem;
+  margin-bottom: 0.75rem;
+  color: var(--text-primary);
+}
+
+.notes-section p {
+  color: var(--text-secondary);
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+/* Right Column */
+.game-detail-right {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.financial-section {
+  background-color: var(--surface-color);
+  border-radius: 8px;
+  padding: 2rem;
+  border: 1px solid var(--border-color);
+}
+
+.financial-section h2 {
+  font-size: 1.5rem;
+  margin-bottom: 1.5rem;
+  color: var(--text-primary);
+}
+
+.financial-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+}
+
+.financial-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem;
+  background-color: var(--bg-color);
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+}
+
+.financial-label {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+.financial-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.financial-value-primary {
+  color: var(--primary-color);
+}
+
+.financial-value-success {
+  color: var(--success-color);
+}
+
+.financial-value-positive {
+  color: var(--success-color);
+}
+
+.financial-value-negative {
+  color: var(--danger-color);
+}
+
+.financial-date {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.price-history-detail-section {
+  background-color: var(--surface-color);
+  border-radius: 8px;
+  padding: 2rem;
+  border: 1px solid var(--border-color);
+}
+
+.price-history-detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.price-history-detail-header h2 {
+  font-size: 1.5rem;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.price-history-chart-container {
+  height: 200px;
+}
+
+.game-detail-actions {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.game-detail-actions .btn {
+  flex: 1;
+  min-width: 150px;
+}
+
+/* Badge Styles */
+.badge {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  width: fit-content;
+}
+
+.badge-source {
+  background-color: var(--secondary-color);
+  color: white;
+}
+
+.badge-posted {
+  background-color: var(--success-color);
+  color: white;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .game-detail-container {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  .game-detail-cover {
+    max-width: 300px;
+  }
+
+  .financial-grid {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .game-detail-page {
+    padding: 1rem;
+  }
+
+  .game-detail-title {
+    font-size: 1.5rem;
+  }
+
+  .financial-section,
+  .game-metadata,
+  .price-history-detail-section {
+    padding: 1.5rem;
+  }
+
+  .financial-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .game-detail-actions {
+    flex-direction: column;
+  }
+
+  .game-detail-actions .btn {
+    width: 100%;
+  }
+}

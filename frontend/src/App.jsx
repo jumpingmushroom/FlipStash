@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Layout from './components/Layout';
 import HomePage from './pages/HomePage';
+import GameDetailPage from './pages/GameDetailPage';
 import GameFormPage from './pages/GameFormPage';
 import StatisticsPage from './pages/StatisticsPage';
 import PriceTrackerPage from './pages/PriceTrackerPage';
@@ -130,6 +131,10 @@ function App() {
                 onGamesUpdate={loadGames}
               />
             }
+          />
+          <Route
+            path="/game/:id"
+            element={<GameDetailPage />}
           />
           <Route
             path="/add-game"
