@@ -120,10 +120,10 @@ export async function searchGames(query, platform = null) {
   const clientId = process.env.IGDB_CLIENT_ID;
 
   try {
-    // Build the IGDB query
-    let igdbQuery = `search "${query}"; fields name, cover.url, first_release_date, platforms.name;`;
+    // Build the IGDB query with correct syntax order
+    let igdbQuery = `search "${query}";`;
 
-    // Add platform filter if specified
+    // Add platform filter if specified (must come before fields)
     if (platform) {
       const platformId = getPlatformId(platform);
       if (platformId) {
@@ -131,7 +131,8 @@ export async function searchGames(query, platform = null) {
       }
     }
 
-    igdbQuery += ' limit 10;';
+    // Add fields and limit
+    igdbQuery += ' fields name, cover.url, first_release_date, platforms.name; limit 10;';
 
     const response = await axios.post(
       'https://api.igdb.com/v4/games',
