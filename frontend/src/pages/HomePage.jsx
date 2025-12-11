@@ -19,6 +19,9 @@ function HomePage({ games, currency, onEdit, onDelete, onRefreshMarket, onGamesU
   const [viewMode, setViewMode] = useState(() => {
     return localStorage.getItem('flipstash_view_mode') || 'grid';
   });
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [refreshProgress, setRefreshProgress] = useState(null);
 
   useEffect(() => {
     applyFiltersAndSort();
@@ -145,9 +148,76 @@ function HomePage({ games, currency, onEdit, onDelete, onRefreshMarket, onGamesU
     }
   };
 
+  const handleBatchRefreshMarketValues = async () => {
+    if (selectedGameIds.length === 0) return;
+
+    // Filter out sold games
+    const unsoldSelectedGames = games.filter(g =>
+      selectedGameIds.includes(g.id) && g.sold_value === null
+    );
+
+    if (unsoldSelectedGames.length === 0) {
+      alert('All selected games are sold. Market value refresh is only available for unsold games.');
+      return;
+    }
+
+    if (!window.confirm(`Refresh market values for ${unsoldSelectedGames.length} game(s)? This may take several minutes.`)) return;
+
+    setIsRefreshing(true);
+    setRefreshProgress({
+      total: unsoldSelectedGames.length,
+      completed: 0,
+      succeeded: 0,
+      failed: 0,
+      current: unsoldSelectedGames[0]?.name || ''
+    });
+
+    try {
+      const response = await gamesApi.batchRefreshMarketValues(unsoldSelectedGames.map(g => g.id));
+
+      if (response.data.success) {
+        const results = response.data.results;
+        setRefreshProgress({
+          total: results.total,
+          completed: results.total,
+          succeeded: results.succeeded,
+          failed: results.failed,
+          skipped: results.skipped,
+          current: 'Complete',
+          details: results.details
+        });
+
+        // Refresh the games list
+        setTimeout(() => {
+          onGamesUpdate();
+          setIsRefreshing(false);
+          setSelectedGameIds([]);
+
+          // Close progress modal after a short delay
+          setTimeout(() => {
+            setRefreshProgress(null);
+          }, 3000);
+        }, 1000);
+      }
+    } catch (err) {
+      alert('Failed to refresh market values');
+      console.error(err);
+      setIsRefreshing(false);
+      setRefreshProgress(null);
+    }
+  };
+
   const handleViewModeChange = (mode) => {
     setViewMode(mode);
     localStorage.setItem('flipstash_view_mode', mode);
+  };
+
+  // Count active advanced filters
+  const getActiveFiltersCount = () => {
+    let count = 0;
+    if (postedFilter) count++;
+    if (acquisitionSourceFilter) count++;
+    return count;
   };
 
   // Get unique platforms and acquisition sources for filter dropdowns
@@ -157,16 +227,16 @@ function HomePage({ games, currency, onEdit, onDelete, onRefreshMarket, onGamesU
   return (
     <div className="home-page">
       <div className="controls">
-        <ViewModeToggle
-          currentMode={viewMode}
-          onModeChange={handleViewModeChange}
-        />
+        <div className="main-controls-row">
+          <ViewModeToggle
+            currentMode={viewMode}
+            onModeChange={handleViewModeChange}
+          />
 
-        <div className="filters">
           <input
             type="text"
-            className="input"
-            placeholder="Search games..."
+            className="input search-input"
+            placeholder="🔍 Search games..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -194,27 +264,6 @@ function HomePage({ games, currency, onEdit, onDelete, onRefreshMarket, onGamesU
 
           <select
             className="select"
-            value={postedFilter}
-            onChange={(e) => setPostedFilter(e.target.value)}
-          >
-            <option value="">All (Posted Status)</option>
-            <option value="posted">Posted Online</option>
-            <option value="not-posted">Not Posted</option>
-          </select>
-
-          <select
-            className="select"
-            value={acquisitionSourceFilter}
-            onChange={(e) => setAcquisitionSourceFilter(e.target.value)}
-          >
-            <option value="">All Sources</option>
-            {acquisitionSources.map(source => (
-              <option key={source} value={source}>{source}</option>
-            ))}
-          </select>
-
-          <select
-            className="select"
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
           >
@@ -223,11 +272,53 @@ function HomePage({ games, currency, onEdit, onDelete, onRefreshMarket, onGamesU
             <option value="purchase_value">Sort: Purchase Value</option>
             <option value="market_value">Sort: Market Value</option>
           </select>
+
+          <button
+            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+            className="btn btn-secondary advanced-filters-toggle"
+          >
+            🔍 Filters {getActiveFiltersCount() > 0 && `(${getActiveFiltersCount()})`}
+          </button>
+
+          <button onClick={handleAddGame} className="btn btn-primary">
+            + Add Game
+          </button>
         </div>
 
-        <button onClick={handleAddGame} className="btn btn-primary">
-          + Add Game
-        </button>
+        {showAdvancedFilters && (
+          <div className="advanced-filters">
+            <select
+              className="select"
+              value={postedFilter}
+              onChange={(e) => setPostedFilter(e.target.value)}
+            >
+              <option value="">Posted Status: All</option>
+              <option value="posted">Posted Online</option>
+              <option value="not-posted">Not Posted</option>
+            </select>
+
+            <select
+              className="select"
+              value={acquisitionSourceFilter}
+              onChange={(e) => setAcquisitionSourceFilter(e.target.value)}
+            >
+              <option value="">Source: All</option>
+              {acquisitionSources.map(source => (
+                <option key={source} value={source}>{source}</option>
+              ))}
+            </select>
+
+            <button
+              onClick={() => {
+                setPostedFilter('');
+                setAcquisitionSourceFilter('');
+              }}
+              className="btn btn-secondary btn-small"
+            >
+              Clear Filters
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Batch Actions Bar */}
@@ -270,6 +361,13 @@ function HomePage({ games, currency, onEdit, onDelete, onRefreshMarket, onGamesU
             Update Condition
           </button>
           <button
+            onClick={handleBatchRefreshMarketValues}
+            className="btn btn-primary btn-small"
+            disabled={isRefreshing}
+          >
+            {isRefreshing ? 'Refreshing...' : '🔄 Refresh Market Values'}
+          </button>
+          <button
             onClick={handleBatchDelete}
             className="btn btn-danger btn-small"
           >
@@ -305,6 +403,62 @@ function HomePage({ games, currency, onEdit, onDelete, onRefreshMarket, onGamesU
               viewMode={viewMode}
             />
           ))}
+        </div>
+      )}
+
+      {/* Batch Refresh Progress Modal */}
+      {refreshProgress && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h2>Refreshing Market Values</h2>
+
+            <div className="progress-info">
+              <div className="progress-bar-container">
+                <div
+                  className="progress-bar"
+                  style={{
+                    width: `${(refreshProgress.completed / refreshProgress.total) * 100}%`
+                  }}
+                ></div>
+              </div>
+              <p className="progress-text">
+                {refreshProgress.completed} of {refreshProgress.total} games processed
+              </p>
+            </div>
+
+            {refreshProgress.current !== 'Complete' && (
+              <p className="current-game">Processing: {refreshProgress.current}</p>
+            )}
+
+            {refreshProgress.current === 'Complete' && (
+              <div className="progress-summary">
+                <h3>Refresh Complete!</h3>
+                <div className="summary-stats">
+                  <div className="summary-stat success">
+                    ✓ Succeeded: {refreshProgress.succeeded}
+                  </div>
+                  <div className="summary-stat failed">
+                    ✗ Failed: {refreshProgress.failed}
+                  </div>
+                  {refreshProgress.skipped > 0 && (
+                    <div className="summary-stat skipped">
+                      ⊝ Skipped: {refreshProgress.skipped}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {!isRefreshing && (
+              <button
+                onClick={() => setRefreshProgress(null)}
+                className="btn btn-primary"
+                style={{ marginTop: '1rem' }}
+              >
+                Close
+              </button>
+            )}
+          </div>
         </div>
       )}
     </div>

@@ -140,6 +140,32 @@ function GameDetailPage() {
           <div className="game-metadata">
             <h1 className="game-detail-title">{game.name}</h1>
 
+            {/* External Links */}
+            {(game.igdb_slug || game.igdb_url) && (
+              <div className="external-links">
+                {(game.igdb_slug || game.igdb_url) && (
+                  <a
+                    href={game.igdb_url || `https://www.igdb.com/games/${game.igdb_slug}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="external-link"
+                  >
+                    🎮 View on IGDB
+                  </a>
+                )}
+                {game.platform && (
+                  <a
+                    href={`https://www.pricecharting.com/search-products?q=${encodeURIComponent(game.name + ' ' + game.platform)}&type=videogames`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="external-link"
+                  >
+                    💰 View on PriceCharting
+                  </a>
+                )}
+              </div>
+            )}
+
             <div className="metadata-item">
               <span className="metadata-label">Platform</span>
               <span className="game-platform-badge">
@@ -179,9 +205,34 @@ function GameDetailPage() {
               </div>
             )}
 
+            {game.igdb_genres && (
+              <div className="metadata-item">
+                <span className="metadata-label">Genres</span>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  {game.igdb_genres.split(', ').map((genre, index) => (
+                    <span key={index} className="badge badge-genre">{genre}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {game.igdb_rating && (
+              <div className="metadata-item">
+                <span className="metadata-label">IGDB Rating</span>
+                <span className="metadata-value">{Math.round(game.igdb_rating)}/100</span>
+              </div>
+            )}
+
+            {game.igdb_summary && (
+              <div className="notes-section">
+                <h3>Description</h3>
+                <p>{game.igdb_summary}</p>
+              </div>
+            )}
+
             {game.notes && (
               <div className="notes-section">
-                <h3>Notes</h3>
+                <h3>Personal Notes</h3>
                 <p>{game.notes}</p>
               </div>
             )}

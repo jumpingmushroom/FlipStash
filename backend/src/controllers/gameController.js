@@ -115,7 +115,8 @@ export async function createGame(req, res) {
       purchase_date, sale_date, condition, notes,
       igdb_id, igdb_cover_url, igdb_release_date,
       purchase_value_currency, market_value_currency, selling_value_currency, sold_value_currency,
-      posted_online, region, acquisition_source
+      posted_online, region, acquisition_source,
+      igdb_slug, igdb_summary, igdb_genres, igdb_rating, igdb_url
     } = req.body;
 
     if (!name || !platform) {
@@ -141,7 +142,12 @@ export async function createGame(req, res) {
       sold_value_currency || 'USD',
       posted_online ? 1 : 0,
       region || 'PAL',
-      acquisition_source || null
+      acquisition_source || null,
+      igdb_slug || null,
+      igdb_summary || null,
+      igdb_genres || null,
+      igdb_rating || null,
+      igdb_url || null
     );
 
     const newGame = statements.getGameById.get(result.lastInsertRowid);
@@ -168,7 +174,8 @@ export async function updateGame(req, res) {
       purchase_date, sale_date, condition, notes,
       igdb_id, igdb_cover_url, igdb_release_date,
       purchase_value_currency, market_value_currency, selling_value_currency, sold_value_currency,
-      posted_online, region, acquisition_source
+      posted_online, region, acquisition_source,
+      igdb_slug, igdb_summary, igdb_genres, igdb_rating, igdb_url
     } = req.body;
 
     if (!name || !platform) {
@@ -201,6 +208,11 @@ export async function updateGame(req, res) {
       posted_online ? 1 : 0,
       region || 'PAL',
       acquisition_source || null,
+      igdb_slug || null,
+      igdb_summary || null,
+      igdb_genres || null,
+      igdb_rating || null,
+      igdb_url || null,
       req.params.id
     );
 
@@ -375,7 +387,12 @@ async function autoFetchIGDBMetadata(gameName, platform) {
     return {
       igdb_id: bestMatch.id,
       igdb_cover_url: bestMatch.coverUrl,
-      igdb_release_date: bestMatch.releaseDate
+      igdb_release_date: bestMatch.releaseDate,
+      igdb_slug: bestMatch.slug,
+      igdb_summary: bestMatch.summary,
+      igdb_genres: bestMatch.genres,
+      igdb_rating: bestMatch.rating,
+      igdb_url: bestMatch.url
     };
   } catch (error) {
     console.log(`Could not auto-fetch IGDB data for ${gameName}:`, error.message);
@@ -452,16 +469,26 @@ export async function importFromCSV(req, res) {
         let igdbData = {
           igdb_id: record.igdb_id || null,
           igdb_cover_url: record.igdb_cover_url || null,
-          igdb_release_date: record.igdb_release_date || null
+          igdb_release_date: record.igdb_release_date || null,
+          igdb_slug: record.igdb_slug || null,
+          igdb_summary: record.igdb_summary || null,
+          igdb_genres: record.igdb_genres || null,
+          igdb_rating: record.igdb_rating || null,
+          igdb_url: record.igdb_url || null
         };
 
-        // If igdb_id is provided but cover URL is missing, fetch details
-        if (record.igdb_id && !record.igdb_cover_url) {
+        // If igdb_id is provided but other data is missing, fetch details
+        if (record.igdb_id && (!record.igdb_cover_url || !record.igdb_slug)) {
           try {
             const details = await getGameDetails(parseInt(record.igdb_id));
             if (details) {
-              igdbData.igdb_cover_url = details.coverUrl || null;
-              igdbData.igdb_release_date = details.releaseDate || null;
+              igdbData.igdb_cover_url = details.coverUrl || igdbData.igdb_cover_url;
+              igdbData.igdb_release_date = details.releaseDate || igdbData.igdb_release_date;
+              igdbData.igdb_slug = details.slug || igdbData.igdb_slug;
+              igdbData.igdb_summary = details.summary || igdbData.igdb_summary;
+              igdbData.igdb_genres = details.genres || igdbData.igdb_genres;
+              igdbData.igdb_rating = details.rating || igdbData.igdb_rating;
+              igdbData.igdb_url = details.url || igdbData.igdb_url;
             }
           } catch (igdbError) {
             console.log(`Could not fetch IGDB data for game ${record.name}:`, igdbError.message);
@@ -495,6 +522,11 @@ export async function importFromCSV(req, res) {
           igdb_id: igdbData.igdb_id ? parseInt(igdbData.igdb_id) : null,
           igdb_cover_url: igdbData.igdb_cover_url,
           igdb_release_date: igdbData.igdb_release_date,
+          igdb_slug: igdbData.igdb_slug,
+          igdb_summary: igdbData.igdb_summary,
+          igdb_genres: igdbData.igdb_genres,
+          igdb_rating: igdbData.igdb_rating ? parseFloat(igdbData.igdb_rating) : null,
+          igdb_url: igdbData.igdb_url,
           purchase_value_currency: record.purchase_value_currency || defaultCurrency || 'USD',
           market_value_currency: record.market_value_currency || defaultCurrency || 'USD',
           selling_value_currency: record.selling_value_currency || defaultCurrency || 'USD',
@@ -526,6 +558,11 @@ export async function importFromCSV(req, res) {
             gameData.posted_online,
             gameData.region,
             gameData.acquisition_source,
+            gameData.igdb_slug,
+            gameData.igdb_summary,
+            gameData.igdb_genres,
+            gameData.igdb_rating,
+            gameData.igdb_url,
             duplicate.id
           );
           results.updated++;
@@ -551,7 +588,12 @@ export async function importFromCSV(req, res) {
             gameData.sold_value_currency,
             gameData.posted_online,
             gameData.region,
-            gameData.acquisition_source
+            gameData.acquisition_source,
+            gameData.igdb_slug,
+            gameData.igdb_summary,
+            gameData.igdb_genres,
+            gameData.igdb_rating,
+            gameData.igdb_url
           );
 
           // Record price history if market value is provided
@@ -674,5 +716,93 @@ export async function batchDeleteGames(req, res) {
   } catch (error) {
     console.error('Error batch deleting games:', error);
     res.status(500).json({ error: 'Failed to batch delete games' });
+  }
+}
+
+/**
+ * Batch refresh market values for multiple games
+ */
+export async function batchRefreshMarketValues(req, res) {
+  try {
+    const { gameIds } = req.body;
+
+    if (!Array.isArray(gameIds) || gameIds.length === 0) {
+      return res.status(400).json({ error: 'gameIds array is required' });
+    }
+
+    const results = {
+      total: gameIds.length,
+      succeeded: 0,
+      failed: 0,
+      skipped: 0,
+      details: []
+    };
+
+    // Process each game
+    for (const id of gameIds) {
+      try {
+        const game = statements.getGameById.get(id);
+        if (!game) {
+          results.failed++;
+          results.details.push({ id, status: 'failed', message: 'Game not found' });
+          continue;
+        }
+
+        // Skip sold games
+        if (game.sold_value !== null) {
+          results.skipped++;
+          results.details.push({ id, status: 'skipped', message: 'Game is sold', name: game.name });
+          continue;
+        }
+
+        // Fetch new market value with condition and region
+        const marketData = await getMarketValue(game.name, game.platform, game.condition, game.region);
+
+        // Only update if we got valid data
+        if (marketData.market_value !== null) {
+          statements.updateMarketValue.run(
+            marketData.market_value,
+            marketData.selling_value,
+            marketData.currency,
+            marketData.currency,
+            id
+          );
+
+          // Determine the source for price history
+          let source = 'manual';
+          const { pricecharting, finnno } = marketData.sources;
+
+          if (finnno !== null) {
+            source = 'finn';
+          } else if (pricecharting !== null) {
+            source = 'pricecharting';
+          }
+
+          // Record price history
+          recordPriceHistory(id, marketData.market_value, source);
+
+          results.succeeded++;
+          results.details.push({
+            id,
+            status: 'success',
+            name: game.name,
+            oldValue: game.market_value,
+            newValue: marketData.market_value,
+            currency: marketData.currency
+          });
+        } else {
+          results.failed++;
+          results.details.push({ id, status: 'failed', message: 'No market data found', name: game.name });
+        }
+      } catch (error) {
+        results.failed++;
+        results.details.push({ id, status: 'failed', message: error.message });
+      }
+    }
+
+    res.json({ success: true, results });
+  } catch (error) {
+    console.error('Error batch refreshing market values:', error);
+    res.status(500).json({ error: 'Failed to batch refresh market values' });
   }
 }

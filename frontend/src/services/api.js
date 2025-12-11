@@ -29,7 +29,9 @@ export const gamesApi = {
   getAcquisitionSources: () => api.get('/games/acquisition-sources'),
   batchUpdatePostedOnline: (gameIds, postedOnline) => api.post('/games/batch/posted-online', { gameIds, postedOnline }),
   batchUpdateCondition: (gameIds, condition) => api.post('/games/batch/condition', { gameIds, condition }),
-  batchDelete: (gameIds) => api.post('/games/batch/delete', { gameIds })
+  batchDelete: (gameIds) => api.post('/games/batch/delete', { gameIds }),
+  batchRefreshMarketValues: (gameIds) => api.post('/games/batch/refresh-market-values', { gameIds }),
+  getPriceHistory: (gameId) => api.get(`/games/${gameId}/price-history`)
 };
 
 export default api;
