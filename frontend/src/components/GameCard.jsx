@@ -3,7 +3,7 @@ import { convertCurrency, formatCurrency } from '../services/currency';
 import PriceChart from './PriceChart';
 import api from '../services/api';
 
-function GameCard({ game, currency = 'USD', onEdit, onDelete, onRefreshMarket }) {
+function GameCard({ game, currency = 'USD', onEdit, onDelete, onRefreshMarket, isSelected = false, onSelect }) {
   const [showPriceHistory, setShowPriceHistory] = useState(false);
   const [priceHistoryCount, setPriceHistoryCount] = useState(0);
 
@@ -38,7 +38,21 @@ function GameCard({ game, currency = 'USD', onEdit, onDelete, onRefreshMarket })
   const isSold = game.sold_value !== null;
 
   return (
-    <div className="game-card">
+    <div className="game-card" style={{ position: 'relative' }}>
+      {onSelect && (
+        <div style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', zIndex: 10 }}>
+          <input
+            type="checkbox"
+            checked={isSelected}
+            onChange={(e) => onSelect(e.target.checked)}
+            style={{
+              cursor: 'pointer',
+              width: '20px',
+              height: '20px'
+            }}
+          />
+        </div>
+      )}
       <div className="game-card-header">
         {game.igdb_cover_url ? (
           <img src={game.igdb_cover_url} alt={game.name} className="game-cover" />
@@ -54,10 +68,25 @@ function GameCard({ game, currency = 'USD', onEdit, onDelete, onRefreshMarket })
           {game.condition && (
             <div className="game-condition">{game.condition}</div>
           )}
+          {game.acquisition_source && (
+            <div style={{
+              display: 'inline-block',
+              marginTop: '0.5rem',
+              padding: '0.25rem 0.5rem',
+              backgroundColor: 'var(--accent-secondary)',
+              color: 'white',
+              borderRadius: '4px',
+              fontSize: '0.75rem',
+              fontWeight: '500'
+            }}>
+              {game.acquisition_source}
+            </div>
+          )}
           {game.posted_online === 1 && (
             <div style={{
               display: 'inline-block',
               marginTop: '0.5rem',
+              marginLeft: '0.5rem',
               padding: '0.25rem 0.5rem',
               backgroundColor: 'var(--success-color)',
               color: 'white',

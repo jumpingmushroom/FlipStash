@@ -88,6 +88,12 @@ try {
     // Set PAL as default for existing games
     db.exec(`UPDATE games SET region = 'PAL' WHERE region IS NULL`);
   }
+
+  // Migration: Add acquisition_source column
+  if (!columns.includes('acquisition_source')) {
+    console.log('Migrating database: Adding acquisition_source column');
+    db.exec(`ALTER TABLE games ADD COLUMN acquisition_source TEXT`);
+  }
 } catch (error) {
   console.error('Migration error:', error.message);
 }
@@ -128,8 +134,8 @@ export const statements = {
       purchase_date, sale_date, condition, notes,
       igdb_id, igdb_cover_url, igdb_release_date,
       purchase_value_currency, market_value_currency, selling_value_currency, sold_value_currency,
-      posted_online, region
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      posted_online, region, acquisition_source
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `),
 
   updateGame: db.prepare(`
@@ -139,7 +145,7 @@ export const statements = {
       condition = ?, notes = ?, igdb_id = ?, igdb_cover_url = ?,
       igdb_release_date = ?,
       purchase_value_currency = ?, market_value_currency = ?, selling_value_currency = ?, sold_value_currency = ?,
-      posted_online = ?, region = ?,
+      posted_online = ?, region = ?, acquisition_source = ?,
       updated_at = CURRENT_TIMESTAMP
     WHERE id = ?
   `),
@@ -199,6 +205,28 @@ export const statements = {
     ) ph ON g.id = ph.game_id
     WHERE g.sold_value IS NULL
     ORDER BY g.created_at DESC
+  `),
+
+  // Get unique acquisition sources for autocomplete
+  getUniqueAcquisitionSources: db.prepare(`
+    SELECT DISTINCT acquisition_source
+    FROM games
+    WHERE acquisition_source IS NOT NULL AND acquisition_source != ''
+    ORDER BY acquisition_source ASC
+  `),
+
+  // Batch update posted_online status
+  updatePostedOnline: db.prepare(`
+    UPDATE games
+    SET posted_online = ?, updated_at = CURRENT_TIMESTAMP
+    WHERE id = ?
+  `),
+
+  // Batch update condition
+  updateCondition: db.prepare(`
+    UPDATE games
+    SET condition = ?, updated_at = CURRENT_TIMESTAMP
+    WHERE id = ?
   `)
 };
 

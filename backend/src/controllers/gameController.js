@@ -44,7 +44,7 @@ export async function createGame(req, res) {
       purchase_date, sale_date, condition, notes,
       igdb_id, igdb_cover_url, igdb_release_date,
       purchase_value_currency, market_value_currency, selling_value_currency, sold_value_currency,
-      posted_online, region
+      posted_online, region, acquisition_source
     } = req.body;
 
     if (!name || !platform) {
@@ -69,7 +69,8 @@ export async function createGame(req, res) {
       selling_value_currency || 'USD',
       sold_value_currency || 'USD',
       posted_online ? 1 : 0,
-      region || 'PAL'
+      region || 'PAL',
+      acquisition_source || null
     );
 
     const newGame = statements.getGameById.get(result.lastInsertRowid);
@@ -96,7 +97,7 @@ export async function updateGame(req, res) {
       purchase_date, sale_date, condition, notes,
       igdb_id, igdb_cover_url, igdb_release_date,
       purchase_value_currency, market_value_currency, selling_value_currency, sold_value_currency,
-      posted_online, region
+      posted_online, region, acquisition_source
     } = req.body;
 
     if (!name || !platform) {
@@ -128,6 +129,7 @@ export async function updateGame(req, res) {
       sold_value_currency || 'USD',
       posted_online ? 1 : 0,
       region || 'PAL',
+      acquisition_source || null,
       req.params.id
     );
 
@@ -247,7 +249,7 @@ export async function exportToCSV(req, res) {
       'condition', 'notes', 'igdb_id', 'igdb_cover_url', 'igdb_release_date',
       'purchase_value_currency', 'market_value_currency',
       'selling_value_currency', 'sold_value_currency', 'posted_online',
-      'created_at', 'updated_at', 'last_refresh_at'
+      'acquisition_source', 'created_at', 'updated_at', 'last_refresh_at'
     ];
 
     // Convert games to CSV format
@@ -370,7 +372,8 @@ export async function importFromCSV(req, res) {
           market_value_currency: record.market_value_currency || 'USD',
           selling_value_currency: record.selling_value_currency || 'USD',
           sold_value_currency: record.sold_value_currency || 'USD',
-          posted_online: record.posted_online === '1' || record.posted_online === 'true' ? 1 : 0
+          posted_online: record.posted_online === '1' || record.posted_online === 'true' ? 1 : 0,
+          acquisition_source: record.acquisition_source || null
         };
 
         if (duplicate && mode === 'update') {
@@ -395,6 +398,7 @@ export async function importFromCSV(req, res) {
             gameData.sold_value_currency,
             gameData.posted_online,
             gameData.region,
+            gameData.acquisition_source,
             duplicate.id
           );
           results.updated++;
@@ -419,7 +423,8 @@ export async function importFromCSV(req, res) {
             gameData.selling_value_currency,
             gameData.sold_value_currency,
             gameData.posted_online,
-            gameData.region
+            gameData.region,
+            gameData.acquisition_source
           );
 
           // Record price history if market value is provided
@@ -445,5 +450,102 @@ export async function importFromCSV(req, res) {
   } catch (error) {
     console.error('Error importing from CSV:', error);
     res.status(500).json({ error: 'Failed to import games from CSV: ' + error.message });
+  }
+}
+
+/**
+ * Get unique acquisition sources for autocomplete
+ */
+export async function getAcquisitionSources(req, res) {
+  try {
+    const sources = statements.getUniqueAcquisitionSources.all();
+    res.json(sources.map(s => s.acquisition_source));
+  } catch (error) {
+    console.error('Error fetching acquisition sources:', error);
+    res.status(500).json({ error: 'Failed to fetch acquisition sources' });
+  }
+}
+
+/**
+ * Batch update posted_online status for multiple games
+ */
+export async function batchUpdatePostedOnline(req, res) {
+  try {
+    const { gameIds, postedOnline } = req.body;
+
+    if (!Array.isArray(gameIds) || gameIds.length === 0) {
+      return res.status(400).json({ error: 'gameIds array is required' });
+    }
+
+    if (typeof postedOnline !== 'boolean') {
+      return res.status(400).json({ error: 'postedOnline boolean is required' });
+    }
+
+    const value = postedOnline ? 1 : 0;
+
+    // Update each game
+    for (const id of gameIds) {
+      statements.updatePostedOnline.run(value, id);
+    }
+
+    res.json({ success: true, updated: gameIds.length });
+  } catch (error) {
+    console.error('Error batch updating posted online:', error);
+    res.status(500).json({ error: 'Failed to batch update posted online status' });
+  }
+}
+
+/**
+ * Batch update condition for multiple games
+ */
+export async function batchUpdateCondition(req, res) {
+  try {
+    const { gameIds, condition } = req.body;
+
+    if (!Array.isArray(gameIds) || gameIds.length === 0) {
+      return res.status(400).json({ error: 'gameIds array is required' });
+    }
+
+    if (!condition) {
+      return res.status(400).json({ error: 'condition is required' });
+    }
+
+    // Update each game
+    for (const id of gameIds) {
+      statements.updateCondition.run(condition, id);
+    }
+
+    res.json({ success: true, updated: gameIds.length });
+  } catch (error) {
+    console.error('Error batch updating condition:', error);
+    res.status(500).json({ error: 'Failed to batch update condition' });
+  }
+}
+
+/**
+ * Batch delete multiple games
+ */
+export async function batchDeleteGames(req, res) {
+  try {
+    const { gameIds } = req.body;
+
+    if (!Array.isArray(gameIds) || gameIds.length === 0) {
+      return res.status(400).json({ error: 'gameIds array is required' });
+    }
+
+    let deletedCount = 0;
+
+    // Delete each game
+    for (const id of gameIds) {
+      const result = statements.deleteGame.run(id);
+      if (result.changes > 0) {
+        deletedCount++;
+      }
+    }
+
+    res.json({ success: true, deleted: deletedCount });
+  } catch (error) {
+    console.error('Error batch deleting games:', error);
+    res.status(500).json({ error: 'Failed to batch delete games' });
   }
 }
