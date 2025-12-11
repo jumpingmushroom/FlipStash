@@ -6,6 +6,77 @@ import { stringify } from 'csv-stringify/sync';
 import { parse } from 'csv-parse/sync';
 
 /**
+ * Platform alias mapping for matching user input to IGDB platform names
+ * Maps common abbreviations and variants to their IGDB equivalents
+ */
+const PLATFORM_ALIASES = {
+  // PlayStation variants
+  'psx': 'PlayStation',
+  'ps1': 'PlayStation',
+  'playstation 1': 'PlayStation',
+  'ps one': 'PlayStation',
+  'ps2': 'PlayStation 2',
+  'ps3': 'PlayStation 3',
+  'ps4': 'PlayStation 4',
+  'ps5': 'PlayStation 5',
+  'psp': 'PlayStation Portable',
+  'ps vita': 'PlayStation Vita',
+  'vita': 'PlayStation Vita',
+
+  // Nintendo variants
+  'nes': 'Nintendo Entertainment System',
+  'snes': 'Super Nintendo Entertainment System',
+  'super nes': 'Super Nintendo Entertainment System',
+  'n64': 'Nintendo 64',
+  'ngc': 'Nintendo GameCube',
+  'gamecube': 'Nintendo GameCube',
+  'wii': 'Wii',
+  'wii u': 'Wii U',
+  'switch': 'Nintendo Switch',
+  'gb': 'Game Boy',
+  'gbc': 'Game Boy Color',
+  'gba': 'Game Boy Advance',
+  'nds': 'Nintendo DS',
+  'ds': 'Nintendo DS',
+  '3ds': 'Nintendo 3DS',
+
+  // Xbox variants
+  'xbox': 'Xbox',
+  'xbox 360': 'Xbox 360',
+  'xbox one': 'Xbox One',
+  'xbox series x': 'Xbox Series X|S',
+  'xbox series s': 'Xbox Series X|S',
+  'xbox series x/s': 'Xbox Series X|S',
+  'xbox series x|s': 'Xbox Series X|S',
+
+  // Sega variants
+  'sega genesis': 'Sega Mega Drive/Genesis',
+  'genesis': 'Sega Mega Drive/Genesis',
+  'mega drive': 'Sega Mega Drive/Genesis',
+  'dreamcast': 'Dreamcast',
+  'saturn': 'Sega Saturn',
+  'game gear': 'Sega Game Gear',
+
+  // PC variants
+  'pc': 'PC (Microsoft Windows)',
+  'windows': 'PC (Microsoft Windows)',
+  'mac': 'Mac',
+  'linux': 'Linux'
+};
+
+/**
+ * Normalize platform name using alias mapping
+ * @param {string} platform - Platform name from CSV or user input
+ * @returns {string} - Normalized platform name for IGDB matching
+ */
+function normalizePlatformName(platform) {
+  if (!platform) return platform;
+
+  const lowercasePlatform = platform.toLowerCase().trim();
+  return PLATFORM_ALIASES[lowercasePlatform] || platform;
+}
+
+/**
  * Get all games
  */
 export async function getAllGames(req, res) {
@@ -288,8 +359,11 @@ async function autoFetchIGDBMetadata(gameName, platform) {
 
     // First, try to find a match that includes the platform in the platforms list
     if (platform) {
+      // Normalize the platform name to match IGDB's naming convention
+      const normalizedPlatform = normalizePlatformName(platform);
+
       bestMatch = searchResults.find(game =>
-        game.platforms && game.platforms.toLowerCase().includes(platform.toLowerCase())
+        game.platforms && game.platforms.toLowerCase().includes(normalizedPlatform.toLowerCase())
       );
     }
 
