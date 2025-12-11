@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { gamesApi } from '../services/api';
 import './ToolsPage.css';
 
-function ToolsPage({ onDataChange }) {
+function ToolsPage({ currency, onDataChange }) {
   const [importMode, setImportMode] = useState('skip');
   const [importFile, setImportFile] = useState(null);
   const [isImporting, setIsImporting] = useState(false);
@@ -58,8 +58,8 @@ function ToolsPage({ onDataChange }) {
       // Read the file as text
       const text = await importFile.text();
 
-      // Send to API
-      const response = await gamesApi.importCSV(text, importMode);
+      // Send to API with currency
+      const response = await gamesApi.importCSV(text, importMode, currency);
 
       setImportResults(response.data.results);
 
