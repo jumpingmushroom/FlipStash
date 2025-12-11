@@ -42,16 +42,20 @@ async function getAccessToken() {
 /**
  * Search for games on IGDB
  * @param {string} query - Game name to search for
+ * @param {string} platform - Optional platform to filter by
  * @returns {Array} - Array of game results
  */
-export async function searchGames(query) {
+export async function searchGames(query, platform = null) {
   const token = await getAccessToken();
   const clientId = process.env.IGDB_CLIENT_ID;
 
   try {
+    // Increase limit when filtering by platform to ensure we get enough results
+    const limit = platform ? 50 : 10;
+
     const response = await axios.post(
       'https://api.igdb.com/v4/games',
-      `search "${query}"; fields name, cover.url, first_release_date, platforms.name; limit 10;`,
+      `search "${query}"; fields name, cover.url, first_release_date, platforms.name; limit ${limit};`,
       {
         headers: {
           'Client-ID': clientId,
@@ -62,13 +66,26 @@ export async function searchGames(query) {
     );
 
     // Transform the response to a more usable format
-    return response.data.map(game => ({
+    let results = response.data.map(game => ({
       id: game.id,
       name: game.name,
       coverUrl: game.cover?.url ? `https:${game.cover.url.replace('t_thumb', 't_cover_big')}` : null,
       releaseDate: game.first_release_date ? new Date(game.first_release_date * 1000).toISOString().split('T')[0] : null,
       platforms: game.platforms?.map(p => p.name).join(', ') || 'Unknown'
     }));
+
+    // Filter by platform if specified
+    if (platform && platform.trim() !== '') {
+      const platformLower = platform.toLowerCase();
+      results = results.filter(game =>
+        game.platforms.toLowerCase().includes(platformLower)
+      );
+
+      // Limit to 10 results after filtering
+      results = results.slice(0, 10);
+    }
+
+    return results;
   } catch (error) {
     console.error('Failed to search IGDB:', error.response?.data || error.message);
     throw new Error('Failed to search games on IGDB');

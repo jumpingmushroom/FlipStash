@@ -16,7 +16,13 @@ export const gamesApi = {
   create: (game) => api.post('/games', game),
   update: (id, game) => api.put(`/games/${id}`, game),
   delete: (id) => api.delete(`/games/${id}`),
-  searchIGDB: (query) => api.get('/games/igdb/search', { params: { query } }),
+  searchIGDB: (query, platform = null) => {
+    const params = { query };
+    if (platform && platform.trim() !== '') {
+      params.platform = platform;
+    }
+    return api.get('/games/igdb/search', { params });
+  },
   refreshMarketValue: (id) => api.post(`/games/${id}/refresh-market-value`),
   exportCSV: () => api.get('/games/export/csv', { responseType: 'blob' }),
   importCSV: (csvData, mode, defaultCurrency) => api.post('/games/import/csv', { csv: csvData, mode, defaultCurrency }),

@@ -122,6 +122,7 @@ function GameForm({ game, currency = 'USD', onClose, onSave }) {
   });
 
   const [igdbQuery, setIgdbQuery] = useState('');
+  const [igdbPlatformFilter, setIgdbPlatformFilter] = useState('');
   const [igdbResults, setIgdbResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState('');
@@ -192,7 +193,7 @@ function GameForm({ game, currency = 'USD', onClose, onSave }) {
     setIsSearching(true);
     setError('');
     try {
-      const response = await gamesApi.searchIGDB(igdbQuery);
+      const response = await gamesApi.searchIGDB(igdbQuery, igdbPlatformFilter);
       setIgdbResults(response.data);
     } catch (err) {
       setError('Failed to search IGDB. Please check your API credentials.');
@@ -284,7 +285,7 @@ function GameForm({ game, currency = 'USD', onClose, onSave }) {
           <div className="igdb-search">
             <div className="form-group">
               <label className="form-label">Search IGDB</label>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
                 <input
                   type="text"
                   className="form-input"
@@ -292,7 +293,43 @@ function GameForm({ game, currency = 'USD', onClose, onSave }) {
                   onChange={(e) => setIgdbQuery(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && searchIGDB()}
                   placeholder="Search for a game..."
+                  style={{ flex: 2 }}
                 />
+                <select
+                  className="form-select"
+                  value={igdbPlatformFilter}
+                  onChange={(e) => setIgdbPlatformFilter(e.target.value)}
+                  style={{ flex: 1 }}
+                >
+                  <option value="">All Platforms</option>
+                  <option value="PlayStation">PlayStation 1</option>
+                  <option value="PlayStation 2">PlayStation 2</option>
+                  <option value="PlayStation 3">PlayStation 3</option>
+                  <option value="PlayStation 4">PlayStation 4</option>
+                  <option value="PlayStation 5">PlayStation 5</option>
+                  <option value="PSP">PSP</option>
+                  <option value="PlayStation Vita">PS Vita</option>
+                  <option value="Xbox">Xbox</option>
+                  <option value="Xbox 360">Xbox 360</option>
+                  <option value="Xbox One">Xbox One</option>
+                  <option value="Xbox Series">Xbox Series X/S</option>
+                  <option value="Nintendo Switch">Nintendo Switch</option>
+                  <option value="Wii U">Wii U</option>
+                  <option value="Wii">Wii</option>
+                  <option value="GameCube">GameCube</option>
+                  <option value="Nintendo 64">Nintendo 64</option>
+                  <option value="Super Nintendo">SNES</option>
+                  <option value="NES">NES</option>
+                  <option value="3DS">3DS</option>
+                  <option value="Nintendo DS">DS</option>
+                  <option value="Game Boy Advance">GBA</option>
+                  <option value="Game Boy Color">GBC</option>
+                  <option value="Game Boy">Game Boy</option>
+                  <option value="Genesis">Sega Genesis</option>
+                  <option value="Dreamcast">Dreamcast</option>
+                  <option value="Saturn">Sega Saturn</option>
+                  <option value="PC">PC</option>
+                </select>
                 <button
                   type="button"
                   onClick={searchIGDB}

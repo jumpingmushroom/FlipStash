@@ -238,12 +238,12 @@ export async function deleteGame(req, res) {
  */
 export async function searchGames(req, res) {
   try {
-    const { query } = req.query;
+    const { query, platform } = req.query;
     if (!query) {
       return res.status(400).json({ error: 'Query parameter is required' });
     }
 
-    const results = await igdbSearch(query);
+    const results = await igdbSearch(query, platform);
     res.json(results);
   } catch (error) {
     console.error('Error searching games:', error);
