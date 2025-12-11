@@ -94,6 +94,32 @@ try {
     console.log('Migrating database: Adding acquisition_source column');
     db.exec(`ALTER TABLE games ADD COLUMN acquisition_source TEXT`);
   }
+
+  // Migration: Add IGDB metadata columns
+  if (!columns.includes('igdb_slug')) {
+    console.log('Migrating database: Adding igdb_slug column');
+    db.exec(`ALTER TABLE games ADD COLUMN igdb_slug TEXT`);
+  }
+
+  if (!columns.includes('igdb_summary')) {
+    console.log('Migrating database: Adding igdb_summary column');
+    db.exec(`ALTER TABLE games ADD COLUMN igdb_summary TEXT`);
+  }
+
+  if (!columns.includes('igdb_genres')) {
+    console.log('Migrating database: Adding igdb_genres column');
+    db.exec(`ALTER TABLE games ADD COLUMN igdb_genres TEXT`);
+  }
+
+  if (!columns.includes('igdb_rating')) {
+    console.log('Migrating database: Adding igdb_rating column');
+    db.exec(`ALTER TABLE games ADD COLUMN igdb_rating REAL`);
+  }
+
+  if (!columns.includes('igdb_url')) {
+    console.log('Migrating database: Adding igdb_url column');
+    db.exec(`ALTER TABLE games ADD COLUMN igdb_url TEXT`);
+  }
 } catch (error) {
   console.error('Migration error:', error.message);
 }
@@ -134,8 +160,9 @@ export const statements = {
       purchase_date, sale_date, condition, notes,
       igdb_id, igdb_cover_url, igdb_release_date,
       purchase_value_currency, market_value_currency, selling_value_currency, sold_value_currency,
-      posted_online, region, acquisition_source
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      posted_online, region, acquisition_source,
+      igdb_slug, igdb_summary, igdb_genres, igdb_rating, igdb_url
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `),
 
   updateGame: db.prepare(`
@@ -146,6 +173,7 @@ export const statements = {
       igdb_release_date = ?,
       purchase_value_currency = ?, market_value_currency = ?, selling_value_currency = ?, sold_value_currency = ?,
       posted_online = ?, region = ?, acquisition_source = ?,
+      igdb_slug = ?, igdb_summary = ?, igdb_genres = ?, igdb_rating = ?, igdb_url = ?,
       updated_at = CURRENT_TIMESTAMP
     WHERE id = ?
   `),

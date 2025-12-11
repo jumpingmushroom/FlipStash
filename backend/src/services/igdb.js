@@ -55,7 +55,7 @@ export async function searchGames(query, platform = null) {
 
     const response = await axios.post(
       'https://api.igdb.com/v4/games',
-      `search "${query}"; fields name, cover.url, first_release_date, platforms.name; limit ${limit};`,
+      `search "${query}"; fields name, cover.url, first_release_date, platforms.name, slug, summary, genres.name, aggregated_rating, url; limit ${limit};`,
       {
         headers: {
           'Client-ID': clientId,
@@ -71,7 +71,12 @@ export async function searchGames(query, platform = null) {
       name: game.name,
       coverUrl: game.cover?.url ? `https:${game.cover.url.replace('t_thumb', 't_cover_big')}` : null,
       releaseDate: game.first_release_date ? new Date(game.first_release_date * 1000).toISOString().split('T')[0] : null,
-      platforms: game.platforms?.map(p => p.name).join(', ') || 'Unknown'
+      platforms: game.platforms?.map(p => p.name).join(', ') || 'Unknown',
+      slug: game.slug || null,
+      summary: game.summary || null,
+      genres: game.genres?.map(g => g.name).join(', ') || null,
+      rating: game.aggregated_rating ? Math.round(game.aggregated_rating) : null,
+      url: game.url || null
     }));
 
     // Filter by platform if specified
@@ -104,7 +109,7 @@ export async function getGameDetails(gameId) {
   try {
     const response = await axios.post(
       'https://api.igdb.com/v4/games',
-      `fields name, cover.url, first_release_date, platforms.name, summary; where id = ${gameId};`,
+      `fields name, cover.url, first_release_date, platforms.name, slug, summary, genres.name, aggregated_rating, url; where id = ${gameId};`,
       {
         headers: {
           'Client-ID': clientId,
@@ -125,7 +130,11 @@ export async function getGameDetails(gameId) {
       coverUrl: game.cover?.url ? `https:${game.cover.url.replace('t_thumb', 't_cover_big')}` : null,
       releaseDate: game.first_release_date ? new Date(game.first_release_date * 1000).toISOString().split('T')[0] : null,
       platforms: game.platforms?.map(p => p.name).join(', ') || 'Unknown',
-      summary: game.summary || ''
+      slug: game.slug || null,
+      summary: game.summary || null,
+      genres: game.genres?.map(g => g.name).join(', ') || null,
+      rating: game.aggregated_rating ? Math.round(game.aggregated_rating) : null,
+      url: game.url || null
     };
   } catch (error) {
     console.error('Failed to get game details from IGDB:', error.response?.data || error.message);
