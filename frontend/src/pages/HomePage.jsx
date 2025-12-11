@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import GameCard from '../components/GameCard';
+import ViewModeToggle from '../components/ViewModeToggle';
 import { gamesApi } from '../services/api';
 import './HomePage.css';
 
@@ -15,6 +16,9 @@ function HomePage({ games, currency, onEdit, onDelete, onRefreshMarket, onGamesU
   const [sortBy, setSortBy] = useState('created_at');
   const [selectedGameIds, setSelectedGameIds] = useState([]);
   const [showBatchActions, setShowBatchActions] = useState(false);
+  const [viewMode, setViewMode] = useState(() => {
+    return localStorage.getItem('flipstash_view_mode') || 'grid';
+  });
 
   useEffect(() => {
     applyFiltersAndSort();
@@ -141,6 +145,11 @@ function HomePage({ games, currency, onEdit, onDelete, onRefreshMarket, onGamesU
     }
   };
 
+  const handleViewModeChange = (mode) => {
+    setViewMode(mode);
+    localStorage.setItem('flipstash_view_mode', mode);
+  };
+
   // Get unique platforms and acquisition sources for filter dropdowns
   const platforms = [...new Set(games.map(g => g.platform))].sort();
   const acquisitionSources = [...new Set(games.map(g => g.acquisition_source).filter(s => s))].sort();
@@ -148,6 +157,11 @@ function HomePage({ games, currency, onEdit, onDelete, onRefreshMarket, onGamesU
   return (
     <div className="home-page">
       <div className="controls">
+        <ViewModeToggle
+          currentMode={viewMode}
+          onModeChange={handleViewModeChange}
+        />
+
         <div className="filters">
           <input
             type="text"
@@ -277,7 +291,7 @@ function HomePage({ games, currency, onEdit, onDelete, onRefreshMarket, onGamesU
           </p>
         </div>
       ) : (
-        <div className="games-grid">
+        <div className={`games-container games-${viewMode}`}>
           {filteredGames.map(game => (
             <GameCard
               key={game.id}
@@ -288,6 +302,7 @@ function HomePage({ games, currency, onEdit, onDelete, onRefreshMarket, onGamesU
               onRefreshMarket={onRefreshMarket}
               isSelected={selectedGameIds.includes(game.id)}
               onSelect={(isSelected) => handleGameSelection(game.id, isSelected)}
+              viewMode={viewMode}
             />
           ))}
         </div>

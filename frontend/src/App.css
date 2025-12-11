@@ -8,6 +8,7 @@
   --primary-color: #6366f1;
   --primary-dark: #4f46e5;
   --secondary-color: #8b5cf6;
+  --accent-secondary: #8b5cf6;
   --success-color: #10b981;
   --danger-color: #ef4444;
   --warning-color: #f59e0b;
@@ -163,10 +164,27 @@ body {
   border-color: var(--primary-color);
 }
 
+/* Games Container - supports different view modes */
+.games-container {
+  width: 100%;
+}
+
 .games-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 1.5rem;
+}
+
+.games-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.games-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+  gap: 2rem;
 }
 
 .game-card {
@@ -176,11 +194,29 @@ body {
   border: 1px solid var(--border-color);
   transition: transform 0.2s, box-shadow 0.2s;
   cursor: pointer;
+  position: relative;
 }
 
 .game-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.game-card-large {
+  padding: 2rem;
+}
+
+.game-card-checkbox {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  z-index: 10;
+}
+
+.game-card-checkbox input {
+  cursor: pointer;
+  width: 20px;
+  height: 20px;
 }
 
 .game-card-header {
@@ -1167,5 +1203,180 @@ body {
 .btn-small {
   padding: 0.5rem 1rem;
   font-size: 0.9rem;
+}
+
+/* View Details Button */
+.btn-view-details {
+  width: 100%;
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background: none;
+  border: 1px solid var(--primary-color);
+  color: var(--primary-color);
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-view-details:hover {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+/* Badge Styles */
+.badge {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.badge-source {
+  background-color: var(--secondary-color);
+  color: white;
+}
+
+.badge-posted {
+  background-color: var(--success-color);
+  color: white;
+}
+
+/* List View Styles */
+.game-list-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background-color: var(--surface-color);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  transition: background-color 0.2s, box-shadow 0.2s;
+  cursor: pointer;
+}
+
+.game-list-item:hover {
+  background-color: var(--surface-hover);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.game-list-checkbox {
+  flex-shrink: 0;
+}
+
+.game-list-checkbox input {
+  cursor: pointer;
+  width: 18px;
+  height: 18px;
+}
+
+.game-list-cover {
+  flex-shrink: 0;
+  width: 50px;
+  height: 66px;
+}
+
+.game-list-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.game-cover-placeholder-small {
+  width: 100%;
+  height: 100%;
+  background-color: var(--bg-color);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  color: var(--text-secondary);
+}
+
+.game-list-info {
+  flex: 1;
+  min-width: 200px;
+}
+
+.game-list-title {
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+  font-size: 1rem;
+}
+
+.game-list-platform {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.game-list-condition {
+  flex-shrink: 0;
+  min-width: 100px;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.game-list-value {
+  flex-shrink: 0;
+  min-width: 100px;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+}
+
+.game-list-badges {
+  flex-shrink: 0;
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  min-width: 100px;
+}
+
+.game-list-actions {
+  flex-shrink: 0;
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+  .game-list-item {
+    flex-wrap: wrap;
+  }
+
+  .game-list-condition,
+  .game-list-value {
+    min-width: 80px;
+  }
+}
+
+@media (max-width: 768px) {
+  .games-tiles {
+    grid-template-columns: 1fr;
+  }
+
+  .game-list-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .game-list-cover {
+    width: 80px;
+    height: 106px;
+  }
+
+  .game-list-info {
+    width: 100%;
+  }
+
+  .game-list-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
 }
 
