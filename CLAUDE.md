@@ -143,6 +143,27 @@ All endpoints are prefixed with `/api/games`
 - **Condition Tracking**: Sealed, CIB, Loose, Box Only, Manual Only
 - **Date Tracking**: Purchase date and sale date
 
+### 5. CSV Import/Export
+- **Export**: Export all games to CSV with all fields including metadata
+- **Import**: Import games from CSV with three modes:
+  - **Skip**: Skip games that already exist (by name + platform)
+  - **Update**: Update existing games with new data from CSV
+  - **Replace**: Delete all existing games and import CSV data
+- **Automatic IGDB Metadata**: When importing games without `igdb_id`:
+  - Automatically searches IGDB for the game name
+  - Matches results by platform when possible
+  - Fetches cover art, release date, and IGDB ID
+  - Falls back to first search result if no platform match
+  - Gracefully handles cases where no metadata is found
+- **Required CSV Fields**: `name`, `platform`
+- **Optional CSV Fields**: All other game fields (purchase_value, condition, region, etc.)
+- **Sample CSV**:
+  ```csv
+  name,platform,purchase_value,condition,region
+  The Legend of Zelda: Breath of the Wild,Nintendo Switch,50,CIB,PAL
+  Super Mario Odyssey,Nintendo Switch,45,CIB,PAL
+  ```
+
 ## Environment Variables
 
 ### Backend (.env)
@@ -308,8 +329,6 @@ These were not implemented but could be added:
 - Image upload for custom photos
 - Barcode scanning integration
 - Price history charts over time
-- Export to CSV/Excel
-- Import from CSV
 - Wishlist feature
 - Trade/loan tracking
 - Collection statistics dashboard expansion
@@ -322,7 +341,7 @@ These were not implemented but could be added:
 
 ## Git Branch
 
-**Current Branch**: `claude/build-flipstash-docker-01E2XWwNu3vpV2DDnEwSzdVP`
+**Current Branch**: `claude/auto-import-metadata-01BEG8wa8MvHV7eaUAfa43p7`
 
 All code is committed and pushed to this branch.
 

@@ -269,6 +269,47 @@ export async function exportToCSV(req, res) {
 }
 
 /**
+ * Helper function to automatically fetch IGDB metadata for a game
+ * @param {string} gameName - Name of the game
+ * @param {string} platform - Platform of the game
+ * @returns {Object|null} - IGDB metadata or null if not found
+ */
+async function autoFetchIGDBMetadata(gameName, platform) {
+  try {
+    // Search IGDB for the game
+    const searchResults = await igdbSearch(gameName);
+
+    if (!searchResults || searchResults.length === 0) {
+      return null;
+    }
+
+    // Try to find a match that includes the platform
+    let bestMatch = null;
+
+    // First, try to find a match that includes the platform in the platforms list
+    if (platform) {
+      bestMatch = searchResults.find(game =>
+        game.platforms && game.platforms.toLowerCase().includes(platform.toLowerCase())
+      );
+    }
+
+    // If no platform match found, use the first result
+    if (!bestMatch) {
+      bestMatch = searchResults[0];
+    }
+
+    return {
+      igdb_id: bestMatch.id,
+      igdb_cover_url: bestMatch.coverUrl,
+      igdb_release_date: bestMatch.releaseDate
+    };
+  } catch (error) {
+    console.log(`Could not auto-fetch IGDB data for ${gameName}:`, error.message);
+    return null;
+  }
+}
+
+/**
  * Import games from CSV
  */
 export async function importFromCSV(req, res) {
@@ -333,22 +374,34 @@ export async function importFromCSV(req, res) {
           continue;
         }
 
-        // Fetch IGDB data if igdb_id is provided
+        // Fetch IGDB data
         let igdbData = {
           igdb_id: record.igdb_id || null,
           igdb_cover_url: record.igdb_cover_url || null,
           igdb_release_date: record.igdb_release_date || null
         };
 
+        // If igdb_id is provided but cover URL is missing, fetch details
         if (record.igdb_id && !record.igdb_cover_url) {
           try {
             const details = await getGameDetails(parseInt(record.igdb_id));
             if (details) {
-              igdbData.igdb_cover_url = details.cover || null;
-              igdbData.igdb_release_date = details.release_date || null;
+              igdbData.igdb_cover_url = details.coverUrl || null;
+              igdbData.igdb_release_date = details.releaseDate || null;
             }
           } catch (igdbError) {
             console.log(`Could not fetch IGDB data for game ${record.name}:`, igdbError.message);
+          }
+        }
+        // If no igdb_id provided, automatically search and fetch metadata
+        else if (!record.igdb_id) {
+          try {
+            const autoMetadata = await autoFetchIGDBMetadata(record.name, record.platform);
+            if (autoMetadata) {
+              igdbData = autoMetadata;
+            }
+          } catch (igdbError) {
+            console.log(`Could not auto-fetch IGDB data for game ${record.name}:`, igdbError.message);
           }
         }
 
