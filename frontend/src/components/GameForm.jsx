@@ -123,6 +123,7 @@ function GameForm({ game, currency = 'USD', onClose, onSave }) {
 
   const [igdbQuery, setIgdbQuery] = useState('');
   const [igdbPlatformFilter, setIgdbPlatformFilter] = useState('');
+  const [igdbRegionFilter, setIgdbRegionFilter] = useState('PAL');
   const [igdbResults, setIgdbResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState('');
@@ -214,6 +215,7 @@ function GameForm({ game, currency = 'USD', onClose, onSave }) {
       ...prev,
       name: igdbGame.name,
       platform: normalizedPlatform,
+      region: igdbRegionFilter, // Use the selected region from IGDB search
       igdb_id: igdbGame.id,
       igdb_cover_url: igdbGame.coverUrl || '',
       igdb_release_date: igdbGame.releaseDate || ''
@@ -338,6 +340,21 @@ function GameForm({ game, currency = 'USD', onClose, onSave }) {
                 >
                   {isSearching ? 'Searching...' : 'Search'}
                 </button>
+              </div>
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <label className="form-label" style={{ margin: 0, minWidth: 'fit-content' }}>Region (for pricing):</label>
+                <select
+                  className="form-select"
+                  value={igdbRegionFilter}
+                  onChange={(e) => setIgdbRegionFilter(e.target.value)}
+                  style={{ flex: 1, maxWidth: '150px' }}
+                >
+                  <option value="PAL">PAL</option>
+                  <option value="NTSC">NTSC (US)</option>
+                  <option value="NTSC-J">NTSC-J (Japan)</option>
+                  <option value="None">None</option>
+                  <option value="Other">Other</option>
+                </select>
               </div>
             </div>
 
