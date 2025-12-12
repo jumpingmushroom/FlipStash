@@ -54,12 +54,15 @@ function getPriceChartingConsoleUrl(platform, region) {
   // Platform to URL mapping
   // PAL versions
   if (isPAL) {
+    if (platformLower.includes('nintendo switch')) return '/console/pal-nintendo-switch';
     if (platformLower.includes('wii u')) return '/console/pal-wii-u';
     if (platformLower.includes('wii') && !platformLower.includes('wii u')) return '/console/pal-wii';
     if (platformLower.includes('gamecube')) return '/console/pal-gamecube';
     if (platformLower.includes('nintendo 64') || platformLower === 'n64') return '/console/pal-nintendo-64';
     if (platformLower.includes('snes') || platformLower.includes('super nintendo')) return '/console/pal-super-nintendo';
     if (platformLower.includes('nes') && !platformLower.includes('snes')) return '/console/pal-nes';
+    if (platformLower.includes('3ds')) return '/console/pal-nintendo-3ds';
+    if (platformLower.includes('nintendo ds') || platformLower === 'ds') return '/console/pal-nintendo-ds';
     if (platformLower.includes('game boy advance') || platformLower === 'gba') return '/console/pal-gameboy-advance';
     if (platformLower.includes('game boy color') || platformLower === 'gbc') return '/console/pal-gameboy-color';
     if (platformLower.includes('game boy') && !platformLower.includes('advance') && !platformLower.includes('color')) return '/console/pal-gameboy';
@@ -224,37 +227,73 @@ async function scrapePriceChartingGeneralSearch(gameName, platform, condition = 
     console.log(`On search results page: ${isSearchResults}`);
 
     if (isSearchResults) {
-      // Click on the first result that matches our region
-      const clickedResult = await page.evaluate((regionPrefix) => {
+      // Click on the first result that matches our platform AND region
+      const clickedResult = await page.evaluate((regionPrefix, platformName) => {
         const rows = document.querySelectorAll('table.table.table-striped tbody tr, table#games_table tbody tr');
+
+        // Normalize platform name for matching
+        const platformKeywords = platformName.toLowerCase().split(' ').filter(word =>
+          !['the', 'a', 'an'].includes(word)
+        );
+
+        console.log(`Looking for platform: ${platformName}, region: ${regionPrefix}`);
 
         for (const row of rows) {
           const link = row.querySelector('a[href*="/game/"]');
           if (!link) continue;
 
           const rowText = row.textContent.toLowerCase();
+          const href = link.href.toLowerCase();
 
-          // If looking for a specific region, try to match it
-          if (regionPrefix) {
-            const regionLower = regionPrefix.toLowerCase();
-            if (regionPrefix === 'PAL' && (link.href.includes('pal') || rowText.includes('pal'))) {
-              link.click();
-              return true;
-            }
-            if (regionPrefix === 'JP' && (link.href.includes('jp-') || rowText.includes('japan') || rowText.includes('jp '))) {
-              link.click();
-              return true;
+          console.log(`Checking row: ${rowText.substring(0, 100)}, href: ${href}`);
+
+          // First, check if platform matches
+          let platformMatches = false;
+
+          // Check if any platform keyword is in the row text or href
+          for (const keyword of platformKeywords) {
+            if (rowText.includes(keyword) || href.includes(keyword)) {
+              platformMatches = true;
+              break;
             }
           }
 
-          // If no region specified or no match found yet, just click the first result
-          if (!regionPrefix) {
+          if (!platformMatches) {
+            console.log(`Platform mismatch, skipping`);
+            continue;
+          }
+
+          // If platform matches, now check region
+          if (regionPrefix) {
+            const regionLower = regionPrefix.toLowerCase();
+            if (regionPrefix === 'PAL' && (href.includes('pal') || rowText.includes('pal'))) {
+              console.log(`Found match with PAL region and correct platform`);
+              link.click();
+              return true;
+            }
+            if (regionPrefix === 'JP' && (href.includes('jp-') || rowText.includes('japan') || rowText.includes('jp '))) {
+              console.log(`Found match with JP region and correct platform`);
+              link.click();
+              return true;
+            }
+            // If no specific region in URL/text, but platform matches and we're looking for NTSC (default)
+            if (!regionPrefix || regionPrefix === '') {
+              if (!href.includes('pal') && !href.includes('jp-')) {
+                console.log(`Found match with NTSC (default) region and correct platform`);
+                link.click();
+                return true;
+              }
+            }
+          } else {
+            // No region preference, just match platform
+            console.log(`Found match with correct platform (no region specified)`);
             link.click();
             return true;
           }
         }
 
-        // If no region match found, click the first result anyway
+        console.log('No match found with platform+region filters, trying first result');
+        // If no region match found, click the first result anyway as last resort
         const firstLink = document.querySelector('table.table.table-striped tbody tr a[href*="/game/"], table#games_table tbody tr a[href*="/game/"]');
         if (firstLink) {
           firstLink.click();
@@ -262,7 +301,7 @@ async function scrapePriceChartingGeneralSearch(gameName, platform, condition = 
         }
 
         return false;
-      }, regionPrefix);
+      }, regionPrefix, platform);
 
       if (clickedResult) {
         console.log('Clicked on search result, waiting for navigation...');
