@@ -40,6 +40,94 @@ function mapRegionToPriceCharting(region) {
 }
 
 /**
+ * Map platform + region to PriceCharting console-specific URL
+ * Returns the console URL path or null if not mapped
+ */
+function getPriceChartingConsoleUrl(platform, region) {
+  // Normalize platform name for mapping
+  const platformLower = platform.toLowerCase();
+
+  // Check if this is a PAL region - use PAL-specific URLs
+  const isPAL = region === 'PAL';
+  const isJP = region === 'NTSC-J';
+
+  // Platform to URL mapping
+  // PAL versions
+  if (isPAL) {
+    if (platformLower.includes('wii u')) return '/console/pal-wii-u';
+    if (platformLower.includes('wii') && !platformLower.includes('wii u')) return '/console/pal-wii';
+    if (platformLower.includes('gamecube')) return '/console/pal-gamecube';
+    if (platformLower.includes('nintendo 64') || platformLower === 'n64') return '/console/pal-nintendo-64';
+    if (platformLower.includes('snes') || platformLower.includes('super nintendo')) return '/console/pal-super-nintendo';
+    if (platformLower.includes('nes') && !platformLower.includes('snes')) return '/console/pal-nes';
+    if (platformLower.includes('game boy advance') || platformLower === 'gba') return '/console/pal-gameboy-advance';
+    if (platformLower.includes('game boy color') || platformLower === 'gbc') return '/console/pal-gameboy-color';
+    if (platformLower.includes('game boy') && !platformLower.includes('advance') && !platformLower.includes('color')) return '/console/pal-gameboy';
+    if (platformLower.includes('playstation 5') || platformLower === 'ps5') return '/console/pal-playstation-5';
+    if (platformLower.includes('playstation 4') || platformLower === 'ps4') return '/console/pal-playstation-4';
+    if (platformLower.includes('playstation 3') || platformLower === 'ps3') return '/console/pal-playstation-3';
+    if (platformLower.includes('playstation 2') || platformLower === 'ps2') return '/console/pal-playstation-2';
+    if (platformLower.includes('playstation 1') || platformLower === 'ps1' || (platformLower.includes('playstation') && !platformLower.match(/[2-5]/))) return '/console/pal-playstation';
+    if (platformLower.includes('psp')) return '/console/pal-psp';
+    if (platformLower.includes('ps vita') || platformLower.includes('playstation vita')) return '/console/pal-vita';
+    if (platformLower.includes('xbox series')) return '/console/pal-xbox-series-x';
+    if (platformLower.includes('xbox one')) return '/console/pal-xbox-one';
+    if (platformLower.includes('xbox 360')) return '/console/pal-xbox-360';
+    if (platformLower.includes('xbox') && !platformLower.includes('360') && !platformLower.includes('one') && !platformLower.includes('series')) return '/console/pal-xbox';
+    if (platformLower.includes('sega genesis') || platformLower.includes('mega drive')) return '/console/pal-sega-genesis';
+    if (platformLower.includes('dreamcast')) return '/console/pal-dreamcast';
+    if (platformLower.includes('saturn')) return '/console/pal-saturn';
+  }
+
+  // Japanese versions
+  if (isJP) {
+    if (platformLower.includes('playstation 5') || platformLower === 'ps5') return '/console/jp-playstation-5';
+    if (platformLower.includes('playstation 4') || platformLower === 'ps4') return '/console/jp-playstation-4';
+    if (platformLower.includes('playstation 3') || platformLower === 'ps3') return '/console/jp-playstation-3';
+    if (platformLower.includes('playstation 2') || platformLower === 'ps2') return '/console/jp-playstation-2';
+    if (platformLower.includes('playstation 1') || platformLower === 'ps1' || (platformLower.includes('playstation') && !platformLower.match(/[2-5]/))) return '/console/jp-playstation';
+    if (platformLower.includes('nintendo switch')) return '/console/jp-nintendo-switch';
+    if (platformLower.includes('wii u')) return '/console/jp-wii-u';
+    if (platformLower.includes('wii') && !platformLower.includes('wii u')) return '/console/jp-wii';
+    if (platformLower.includes('gamecube')) return '/console/jp-gamecube';
+    if (platformLower.includes('nintendo 64') || platformLower === 'n64') return '/console/jp-nintendo-64';
+    if (platformLower.includes('super famicom') || (platformLower.includes('snes') || platformLower.includes('super nintendo'))) return '/console/jp-super-famicom';
+    if (platformLower.includes('famicom') || (platformLower.includes('nes') && !platformLower.includes('snes'))) return '/console/jp-famicom';
+  }
+
+  // NTSC/US versions and region-neutral platforms
+  if (platformLower.includes('nintendo switch')) return '/console/nintendo-switch';
+  if (platformLower.includes('wii u')) return '/console/wii-u';
+  if (platformLower.includes('wii') && !platformLower.includes('wii u')) return '/console/wii';
+  if (platformLower.includes('gamecube')) return '/console/gamecube';
+  if (platformLower.includes('nintendo 64') || platformLower === 'n64') return '/console/nintendo-64';
+  if (platformLower.includes('snes') || platformLower.includes('super nintendo')) return '/console/super-nintendo';
+  if (platformLower.includes('nes') && !platformLower.includes('snes')) return '/console/nes';
+  if (platformLower.includes('3ds')) return '/console/nintendo-3ds';
+  if (platformLower.includes('nintendo ds') || platformLower === 'ds') return '/console/nintendo-ds';
+  if (platformLower.includes('game boy advance') || platformLower === 'gba') return '/console/gameboy-advance';
+  if (platformLower.includes('game boy color') || platformLower === 'gbc') return '/console/gameboy-color';
+  if (platformLower.includes('game boy') && !platformLower.includes('advance') && !platformLower.includes('color')) return '/console/gameboy';
+  if (platformLower.includes('playstation 5') || platformLower === 'ps5') return '/console/playstation-5';
+  if (platformLower.includes('playstation 4') || platformLower === 'ps4') return '/console/playstation-4';
+  if (platformLower.includes('playstation 3') || platformLower === 'ps3') return '/console/playstation-3';
+  if (platformLower.includes('playstation 2') || platformLower === 'ps2') return '/console/playstation-2';
+  if (platformLower.includes('playstation 1') || platformLower === 'ps1' || (platformLower.includes('playstation') && !platformLower.match(/[2-5]/))) return '/console/playstation';
+  if (platformLower.includes('psp')) return '/console/psp';
+  if (platformLower.includes('ps vita') || platformLower.includes('playstation vita')) return '/console/vita';
+  if (platformLower.includes('xbox series')) return '/console/xbox-series-x';
+  if (platformLower.includes('xbox one')) return '/console/xbox-one';
+  if (platformLower.includes('xbox 360')) return '/console/xbox-360';
+  if (platformLower.includes('xbox') && !platformLower.includes('360') && !platformLower.includes('one') && !platformLower.includes('series')) return '/console/xbox';
+  if (platformLower.includes('sega genesis') || platformLower.includes('mega drive')) return '/console/sega-genesis';
+  if (platformLower.includes('dreamcast')) return '/console/dreamcast';
+  if (platformLower.includes('saturn')) return '/console/sega-saturn';
+
+  // Return null if no mapping found - will trigger fallback to general search
+  return null;
+}
+
+/**
  * Map condition to PriceCharting column name
  */
 function mapConditionToPriceCharting(condition) {
@@ -54,14 +142,15 @@ function mapConditionToPriceCharting(condition) {
 }
 
 /**
- * Scrape price from PriceCharting.com
+ * Fallback: Scrape price from PriceCharting.com using general search
+ * This is used when platform-specific URL is not available or fails
  * @param {string} gameName - Name of the game
  * @param {string} platform - Gaming platform
  * @param {string} condition - Game condition (Sealed, CIB, Loose, Box Only, Manual Only)
  * @param {string} region - Game region (PAL, NTSC, NTSC-J, None, Other)
  * @returns {number|null} - Price in USD or null if not found
  */
-async function scrapePriceCharting(gameName, platform, condition = 'CIB (Complete in Box)', region = 'PAL') {
+async function scrapePriceChartingGeneralSearch(gameName, platform, condition = 'CIB (Complete in Box)', region = 'PAL') {
   let browser;
   try {
     browser = await createBrowser();
@@ -82,7 +171,7 @@ async function scrapePriceCharting(gameName, platform, condition = 'CIB (Complet
     const regionPrefix = mapRegionToPriceCharting(region);
     const searchQuery = regionPrefix ? `${regionPrefix} ${gameName} ${platform}` : `${gameName} ${platform}`;
 
-    console.log(`PriceCharting search query: "${searchQuery}"`);
+    console.log(`PriceCharting general search query: "${searchQuery}"`);
 
     // Navigate to PriceCharting
     await page.goto('https://www.pricecharting.com/', { waitUntil: 'networkidle2', timeout: 30000 });
@@ -102,7 +191,6 @@ async function scrapePriceCharting(gameName, platform, condition = 'CIB (Complet
 
     // Check if we're on a search results page and need to click the first result
     const isSearchResults = await page.evaluate(() => {
-      // Look for search results table or list
       const searchTable = document.querySelector('table.table.table-striped, table#games_table');
       return searchTable !== null;
     });
@@ -123,12 +211,10 @@ async function scrapePriceCharting(gameName, platform, condition = 'CIB (Complet
           // If looking for a specific region, try to match it
           if (regionPrefix) {
             const regionLower = regionPrefix.toLowerCase();
-            // For PAL, look for "pal" in the link href or row text
             if (regionPrefix === 'PAL' && (link.href.includes('pal') || rowText.includes('pal'))) {
               link.click();
               return true;
             }
-            // For JP, look for "jp" or "japan"
             if (regionPrefix === 'JP' && (link.href.includes('jp-') || rowText.includes('japan') || rowText.includes('jp '))) {
               link.click();
               return true;
@@ -167,7 +253,197 @@ async function scrapePriceCharting(gameName, platform, condition = 'CIB (Complet
     console.log(`Looking for condition: ${targetCondition}`);
 
     // Try to find price based on condition
-    const price = await page.evaluate((targetCondition, regionPrefix) => {
+    const price = await page.evaluate((targetCondition) => {
+      const table = document.querySelector('table#games_table, table.prices, table.price_table, div.price-table table, table[id*="price"]');
+
+      if (!table) {
+        console.log('Price table not found');
+        return null;
+      }
+
+      console.log('Found price table');
+
+      const headerRow = table.querySelector('thead tr, tr:first-child');
+      if (!headerRow) {
+        console.log('Header row not found');
+        return null;
+      }
+
+      const headers = Array.from(headerRow.querySelectorAll('th, td'));
+      let targetColumnIndex = -1;
+
+      console.log('Headers found:', headers.map(h => h.textContent.trim()));
+
+      for (let i = 0; i < headers.length; i++) {
+        const headerText = headers[i].textContent.trim();
+        if (headerText.includes(targetCondition)) {
+          targetColumnIndex = i;
+          console.log(`Found ${targetCondition} at column ${i}`);
+          break;
+        }
+      }
+
+      if (targetColumnIndex === -1) {
+        console.log(`Column for ${targetCondition} not found`);
+        for (let i = 0; i < headers.length; i++) {
+          const headerText = headers[i].textContent.trim().toLowerCase();
+          if (headerText.includes('price') || headerText.includes('value')) {
+            targetColumnIndex = i;
+            console.log(`Using fallback price column at index ${i}: ${headers[i].textContent.trim()}`);
+            break;
+          }
+        }
+      }
+
+      if (targetColumnIndex === -1) {
+        console.log('No price column found');
+        return null;
+      }
+
+      const dataRows = Array.from(table.querySelectorAll('tbody tr, tr:not(:first-child)'));
+      console.log(`Found ${dataRows.length} data rows`);
+
+      for (const row of dataRows) {
+        const cells = Array.from(row.querySelectorAll('td'));
+
+        if (cells.length > targetColumnIndex) {
+          const priceCell = cells[targetColumnIndex];
+          const priceText = priceCell?.textContent.trim() || '';
+          console.log(`Checking row, price text: "${priceText}"`);
+
+          const match = priceText.match(/\$([0-9,]+\.?[0-9]*)/);
+
+          if (match) {
+            const price = parseFloat(match[1].replace(/,/g, ''));
+            console.log(`Found price: $${match[1]} (${price})`);
+            return price;
+          }
+        }
+      }
+
+      console.log('No price found in any row');
+      return null;
+    }, targetCondition);
+
+    return price;
+  } catch (error) {
+    console.error('PriceCharting general search error:', error.message);
+    return null;
+  } finally {
+    if (browser) {
+      await browser.close();
+    }
+  }
+}
+
+/**
+ * Scrape price from PriceCharting.com using platform-specific console pages
+ * @param {string} gameName - Name of the game
+ * @param {string} platform - Gaming platform
+ * @param {string} condition - Game condition (Sealed, CIB, Loose, Box Only, Manual Only)
+ * @param {string} region - Game region (PAL, NTSC, NTSC-J, None, Other)
+ * @returns {number|null} - Price in USD or null if not found
+ */
+async function scrapePriceCharting(gameName, platform, condition = 'CIB (Complete in Box)', region = 'PAL') {
+  let browser;
+  try {
+    browser = await createBrowser();
+    const page = await browser.newPage();
+
+    // Set realistic viewport and user agent
+    await page.setViewport({ width: 1920, height: 1080 });
+    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+
+    // Enable JavaScript and set extra headers
+    await page.setJavaScriptEnabled(true);
+    await page.setExtraHTTPHeaders({
+      'Accept-Language': 'en-US,en;q=0.9',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
+    });
+
+    // Try platform-specific URL first
+    const consoleUrl = getPriceChartingConsoleUrl(platform, region);
+
+    if (consoleUrl) {
+      console.log(`PriceCharting: Using platform-specific URL: ${consoleUrl}`);
+      console.log(`Searching for: "${gameName}" on ${platform} (${region})`);
+
+      // Navigate to platform-specific console page
+      await page.goto(`https://www.pricecharting.com${consoleUrl}`, {
+        waitUntil: 'networkidle2',
+        timeout: 30000
+      });
+      await randomDelay(1000, 2000);
+
+      // Search for the game using the on-page search
+      const searchInput = await page.$('input[name="q"], input[type="search"], input.search-input, input[placeholder*="Search"]');
+
+      if (searchInput) {
+        await searchInput.type(gameName, { delay: 100 });
+        await randomDelay(500, 1000);
+
+        // Submit search
+        await Promise.all([
+          page.keyboard.press('Enter'),
+          page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 30000 }).catch(() => {
+            // Navigation might not occur if results are shown on same page
+            console.log('No navigation occurred - results may be on same page');
+          })
+        ]);
+
+        await randomDelay(1000, 2000);
+      } else {
+        console.log('Search input not found on console page, falling back to general search');
+        await browser.close();
+        // Retry with general search
+        return await scrapePriceChartingGeneralSearch(gameName, platform, condition, region);
+      }
+    } else {
+      console.log(`PriceCharting: No platform-specific URL for ${platform} (${region}), using general search`);
+      await browser.close();
+      return await scrapePriceChartingGeneralSearch(gameName, platform, condition, region);
+    }
+
+    await randomDelay(1000, 2000);
+
+    // Check if we're on a search results page and need to click the first result
+    const isSearchResults = await page.evaluate(() => {
+      // Look for search results table or list
+      const searchTable = document.querySelector('table.table.table-striped, table#games_table');
+      return searchTable !== null;
+    });
+
+    console.log(`On search results page: ${isSearchResults}`);
+
+    if (isSearchResults) {
+      // Since we're on a platform-specific page, all results are for this platform/region
+      // Just click the first result
+      const clickedResult = await page.evaluate(() => {
+        const firstLink = document.querySelector('table.table.table-striped tbody tr a[href*="/game/"], table#games_table tbody tr a[href*="/game/"]');
+        if (firstLink) {
+          console.log('Clicking first result:', firstLink.textContent.trim());
+          firstLink.click();
+          return true;
+        }
+        return false;
+      });
+
+      if (clickedResult) {
+        console.log('Clicked on search result, waiting for navigation...');
+        await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 30000 });
+        await randomDelay(1000, 2000);
+      } else {
+        console.log('No search results found to click');
+        return null;
+      }
+    }
+
+    // Map condition to column name
+    const targetCondition = mapConditionToPriceCharting(condition);
+    console.log(`Looking for condition: ${targetCondition}`);
+
+    // Try to find price based on condition
+    const price = await page.evaluate((targetCondition) => {
       // Try multiple selectors for the price table
       const table = document.querySelector('table#games_table, table.prices, table.price_table, div.price-table table, table[id*="price"]');
 
@@ -243,7 +519,7 @@ async function scrapePriceCharting(gameName, platform, condition = 'CIB (Complet
 
       console.log('No price found in any row');
       return null;
-    }, targetCondition, regionPrefix);
+    }, targetCondition);
 
     return price;
   } catch (error) {
