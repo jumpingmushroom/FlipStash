@@ -122,6 +122,7 @@ function getPriceChartingConsoleUrl(platform, region) {
   if (platformLower.includes('sega genesis') || platformLower.includes('mega drive')) return '/console/sega-genesis';
   if (platformLower.includes('dreamcast')) return '/console/dreamcast';
   if (platformLower.includes('saturn')) return '/console/sega-saturn';
+  if (platformLower === 'pc' || platformLower.includes('windows') || platformLower.includes('mac') || platformLower.includes('linux')) return '/console/pc-games';
 
   // Return null if no mapping found - will trigger fallback to general search
   return null;
