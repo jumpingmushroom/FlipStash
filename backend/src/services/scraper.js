@@ -128,6 +128,31 @@ function getPriceChartingConsoleUrl(platform, region) {
 }
 
 /**
+ * Convert game name to PriceCharting URL slug
+ * Examples: "Mario Kart 8" -> "mario-kart-8", "The Legend of Zelda: Breath of the Wild" -> "legend-of-zelda-breath-of-wild"
+ */
+function generateGameSlug(gameName) {
+  return gameName
+    .toLowerCase()
+    .replace(/&/g, 'and') // Replace & with "and"
+    .replace(/:/g, '') // Remove colons
+    .replace(/'/g, '') // Remove apostrophes
+    .replace(/\./g, '') // Remove periods
+    .replace(/!/g, '') // Remove exclamation marks
+    .replace(/\?/g, '') // Remove question marks
+    .replace(/,/g, '') // Remove commas
+    .replace(/\(/g, '') // Remove opening parentheses
+    .replace(/\)/g, '') // Remove closing parentheses
+    .replace(/\[/g, '') // Remove opening brackets
+    .replace(/\]/g, '') // Remove closing brackets
+    .replace(/\s+/g, '-') // Replace spaces with dashes
+    .replace(/[^a-z0-9-]/g, '') // Remove any remaining special characters
+    .replace(/-+/g, '-') // Replace multiple dashes with single dash
+    .replace(/^-|-$/g, '') // Remove leading/trailing dashes
+    .replace(/^the-/g, ''); // Remove leading "the-" (PriceCharting often omits "The")
+}
+
+/**
  * Map condition to PriceCharting column name
  */
 function mapConditionToPriceCharting(condition) {
@@ -337,7 +362,7 @@ async function scrapePriceChartingGeneralSearch(gameName, platform, condition = 
 }
 
 /**
- * Scrape price from PriceCharting.com using platform-specific console pages
+ * Scrape price from PriceCharting.com using direct game URL
  * @param {string} gameName - Name of the game
  * @param {string} platform - Gaming platform
  * @param {string} condition - Game condition (Sealed, CIB, Loose, Box Only, Manual Only)
@@ -361,82 +386,55 @@ async function scrapePriceCharting(gameName, platform, condition = 'CIB (Complet
       'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
     });
 
-    // Try platform-specific URL first
-    const consoleUrl = getPriceChartingConsoleUrl(platform, region);
+    // Get console URL slug
+    const consoleSlug = getPriceChartingConsoleUrl(platform, region);
 
-    if (consoleUrl) {
-      console.log(`PriceCharting: Using platform-specific URL: ${consoleUrl}`);
-      console.log(`Searching for: "${gameName}" on ${platform} (${region})`);
-
-      // Navigate to platform-specific console page
-      await page.goto(`https://www.pricecharting.com${consoleUrl}`, {
-        waitUntil: 'networkidle2',
-        timeout: 30000
-      });
-      await randomDelay(1000, 2000);
-
-      // Search for the game using the on-page search
-      const searchInput = await page.$('input[name="q"], input[type="search"], input.search-input, input[placeholder*="Search"]');
-
-      if (searchInput) {
-        await searchInput.type(gameName, { delay: 100 });
-        await randomDelay(500, 1000);
-
-        // Submit search
-        await Promise.all([
-          page.keyboard.press('Enter'),
-          page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 30000 }).catch(() => {
-            // Navigation might not occur if results are shown on same page
-            console.log('No navigation occurred - results may be on same page');
-          })
-        ]);
-
-        await randomDelay(1000, 2000);
-      } else {
-        console.log('Search input not found on console page, falling back to general search');
-        await browser.close();
-        // Retry with general search
-        return await scrapePriceChartingGeneralSearch(gameName, platform, condition, region);
-      }
-    } else {
-      console.log(`PriceCharting: No platform-specific URL for ${platform} (${region}), using general search`);
+    if (!consoleSlug) {
+      console.log(`PriceCharting: No console mapping for ${platform} (${region}), using general search fallback`);
       await browser.close();
       return await scrapePriceChartingGeneralSearch(gameName, platform, condition, region);
     }
 
-    await randomDelay(1000, 2000);
+    // Generate game slug from game name
+    const gameSlug = generateGameSlug(gameName);
 
-    // Check if we're on a search results page and need to click the first result
-    const isSearchResults = await page.evaluate(() => {
-      // Look for search results table or list
-      const searchTable = document.querySelector('table.table.table-striped, table#games_table');
-      return searchTable !== null;
+    // Remove leading slash from consoleSlug to get just the slug part
+    const consoleSlugClean = consoleSlug.replace('/console/', '');
+
+    // Build direct game URL
+    const directGameUrl = `https://www.pricecharting.com/game/${consoleSlugClean}/${gameSlug}`;
+
+    console.log(`PriceCharting: Trying direct URL: ${directGameUrl}`);
+
+    // Try to navigate to direct game URL
+    const response = await page.goto(directGameUrl, {
+      waitUntil: 'networkidle2',
+      timeout: 30000
     });
 
-    console.log(`On search results page: ${isSearchResults}`);
+    await randomDelay(1000, 2000);
 
-    if (isSearchResults) {
-      // Since we're on a platform-specific page, all results are for this platform/region
-      // Just click the first result
-      const clickedResult = await page.evaluate(() => {
-        const firstLink = document.querySelector('table.table.table-striped tbody tr a[href*="/game/"], table#games_table tbody tr a[href*="/game/"]');
-        if (firstLink) {
-          console.log('Clicking first result:', firstLink.textContent.trim());
-          firstLink.click();
-          return true;
-        }
-        return false;
-      });
-
-      if (clickedResult) {
-        console.log('Clicked on search result, waiting for navigation...');
-        await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 30000 });
-        await randomDelay(1000, 2000);
-      } else {
-        console.log('No search results found to click');
-        return null;
-      }
+    // Check if we got a 404 or invalid page
+    if (!response || response.status() === 404) {
+      console.log(`PriceCharting: Direct URL returned 404, falling back to search`);
+      await browser.close();
+      return await scrapePriceChartingGeneralSearch(gameName, platform, condition, region);
     }
+
+    // Check if we actually landed on a game page (not a 404 or error page)
+    const isGamePage = await page.evaluate(() => {
+      // Game pages have a price table
+      const table = document.querySelector('table#games_table, table.prices, table.price_table, div.price-table table, table[id*="price"]');
+      return table !== null;
+    });
+
+    if (!isGamePage) {
+      console.log(`PriceCharting: Not a valid game page, falling back to search`);
+      await browser.close();
+      return await scrapePriceChartingGeneralSearch(gameName, platform, condition, region);
+    }
+
+    console.log(`PriceCharting: Successfully loaded game page via direct URL`);
 
     // Map condition to column name
     const targetCondition = mapConditionToPriceCharting(condition);
