@@ -124,6 +124,11 @@ function GameFormPage({ currency = 'USD', onSave }) {
     igdb_id: '',
     igdb_cover_url: '',
     igdb_release_date: '',
+    igdb_slug: '',
+    igdb_summary: '',
+    igdb_genres: '',
+    igdb_rating: '',
+    igdb_url: '',
     posted_online: false
   });
 
@@ -170,6 +175,11 @@ function GameFormPage({ currency = 'USD', onSave }) {
       igdb_id: game.igdb_id || '',
       igdb_cover_url: game.igdb_cover_url || '',
       igdb_release_date: game.igdb_release_date || '',
+      igdb_slug: game.igdb_slug || '',
+      igdb_summary: game.igdb_summary || '',
+      igdb_genres: game.igdb_genres || '',
+      igdb_rating: game.igdb_rating || '',
+      igdb_url: game.igdb_url || '',
       posted_online: game.posted_online === 1 || game.posted_online === true
     });
   };
@@ -224,7 +234,12 @@ function GameFormPage({ currency = 'USD', onSave }) {
       platform: normalizedPlatform,
       igdb_id: igdbGame.id,
       igdb_cover_url: igdbGame.coverUrl || '',
-      igdb_release_date: igdbGame.releaseDate || ''
+      igdb_release_date: igdbGame.releaseDate || '',
+      igdb_slug: igdbGame.slug || '',
+      igdb_summary: igdbGame.summary || '',
+      igdb_genres: igdbGame.genres || '',
+      igdb_rating: igdbGame.rating || '',
+      igdb_url: igdbGame.url || ''
     }));
     setIgdbResults([]);
     setIgdbQuery('');
