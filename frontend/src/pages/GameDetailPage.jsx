@@ -81,7 +81,7 @@ function GameDetailPage() {
 
   const handleTogglePosted = async () => {
     try {
-      await gamesApi.update(id, { posted_online: game.posted_online === 1 ? 0 : 1 });
+      await gamesApi.updatePostedOnline(id, game.posted_online === 1 ? 0 : 1);
       loadGame();
     } catch (err) {
       alert('Failed to update posted status');

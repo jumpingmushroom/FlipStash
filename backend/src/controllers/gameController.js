@@ -636,6 +636,35 @@ export async function getAcquisitionSources(req, res) {
 }
 
 /**
+ * Update posted_online status for a single game
+ */
+export async function updatePostedOnline(req, res) {
+  try {
+    const { posted_online } = req.body;
+
+    if (typeof posted_online !== 'number' || (posted_online !== 0 && posted_online !== 1)) {
+      return res.status(400).json({ error: 'posted_online must be 0 or 1' });
+    }
+
+    // Check if game exists
+    const game = statements.getGameById.get(req.params.id);
+    if (!game) {
+      return res.status(404).json({ error: 'Game not found' });
+    }
+
+    // Update posted_online status
+    statements.updatePostedOnline.run(posted_online, req.params.id);
+
+    // Return updated game
+    const updatedGame = statements.getGameById.get(req.params.id);
+    res.json(updatedGame);
+  } catch (error) {
+    console.error('Error updating posted online status:', error);
+    res.status(500).json({ error: 'Failed to update posted online status' });
+  }
+}
+
+/**
  * Batch update posted_online status for multiple games
  */
 export async function batchUpdatePostedOnline(req, res) {

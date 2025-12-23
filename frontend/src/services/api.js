@@ -24,6 +24,7 @@ export const gamesApi = {
     return api.get('/games/igdb/search', { params });
   },
   refreshMarketValue: (id) => api.post(`/games/${id}/refresh-market-value`),
+  updatePostedOnline: (id, posted_online) => api.put(`/games/${id}/posted-online`, { posted_online }),
   exportCSV: () => api.get('/games/export/csv', { responseType: 'blob' }),
   importCSV: (csvData, mode, defaultCurrency) => api.post('/games/import/csv', { csv: csvData, mode, defaultCurrency }),
   getAcquisitionSources: () => api.get('/games/acquisition-sources'),
