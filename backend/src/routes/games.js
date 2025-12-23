@@ -8,6 +8,7 @@ import {
   searchGames,
   refreshMarketValue,
   refreshMarketValueSSE,
+  refreshMarketValueFromUrl,
   exportToCSV,
   importFromCSV,
   getAcquisitionSources,
@@ -47,6 +48,7 @@ router.delete('/:id', deleteGame);
 // More specific routes
 router.post('/:id/refresh-market-value', refreshMarketValue);
 router.post('/:id/refresh-market-value-sse', refreshMarketValueSSE);
+router.post('/:id/refresh-market-value-from-url', refreshMarketValueFromUrl);
 router.put('/:id/posted-online', updatePostedOnline);
 router.get('/:id/price-history', getGamePriceHistory);
 

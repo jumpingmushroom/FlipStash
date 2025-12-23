@@ -24,6 +24,7 @@ export const gamesApi = {
     return api.get('/games/igdb/search', { params });
   },
   refreshMarketValue: (id) => api.post(`/games/${id}/refresh-market-value`),
+  refreshMarketValueFromUrl: (id, url) => api.post(`/games/${id}/refresh-market-value-from-url`, { url }),
   refreshMarketValueSSE: (id, onProgress) => {
     // Use fetch API for SSE instead of axios
     return fetch(`${API_BASE_URL}/api/games/${id}/refresh-market-value-sse`, {

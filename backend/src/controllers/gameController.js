@@ -1,6 +1,6 @@
 import { statements } from '../db/index.js';
 import { searchGames as igdbSearch, getGameDetails } from '../services/igdb.js';
-import { getMarketValue } from '../services/scraper.js';
+import { getMarketValue, getPriceFromUrl } from '../services/scraper.js';
 import { recordPriceHistory } from '../services/priceHistory.js';
 import { stringify } from 'csv-stringify/sync';
 import { parse } from 'csv-parse/sync';
@@ -409,8 +409,19 @@ export async function refreshMarketValueSSE(req, res) {
       return;
     }
 
-    // Fetch new market value
-    const marketData = await getMarketValue(game.name, game.platform, game.condition, game.region);
+    // Fetch new market value - request multiple results if available
+    const marketData = await getMarketValue(game.name, game.platform, game.condition, game.region, true);
+
+    // Check if we got multiple results for user selection
+    if (marketData.multipleResults) {
+      sendUpdate({
+        type: 'multipleResults',
+        gameId: id,
+        results: marketData.multipleResults
+      });
+      res.end();
+      return;
+    }
 
     // Process result
     if (marketData.market_value !== null) {
@@ -1026,6 +1037,50 @@ export async function batchRefreshMarketValues(req, res) {
   } catch (error) {
     console.error('Error batch refreshing market values:', error);
     res.status(500).json({ error: 'Failed to batch refresh market values' });
+  }
+}
+
+/**
+ * Refresh market value from a specific PriceCharting URL
+ * Used when user selects from multiple search results
+ */
+export async function refreshMarketValueFromUrl(req, res) {
+  try {
+    const game = statements.getGameById.get(req.params.id);
+    if (!game) {
+      return res.status(404).json({ error: 'Game not found' });
+    }
+
+    const { url } = req.body;
+    if (!url) {
+      return res.status(400).json({ error: 'URL is required' });
+    }
+
+    // Fetch price from the specific URL
+    const marketData = await getPriceFromUrl(url, game.condition);
+
+    if (marketData.market_value !== null) {
+      statements.updateMarketValue.run(
+        marketData.market_value,
+        marketData.selling_value,
+        marketData.currency,
+        marketData.currency,
+        req.params.id
+      );
+
+      // Record price history
+      recordPriceHistory(req.params.id, marketData.market_value, 'pricecharting');
+
+      const updatedGame = statements.getGameById.get(req.params.id);
+      res.json({
+        game: updatedGame
+      });
+    } else {
+      res.status(400).json({ error: 'No price found at the specified URL' });
+    }
+  } catch (error) {
+    console.error('Error refreshing market value from URL:', error);
+    res.status(500).json({ error: 'Failed to refresh market value from URL' });
   }
 }
 

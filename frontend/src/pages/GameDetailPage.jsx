@@ -16,6 +16,7 @@ function GameDetailPage() {
   const [priceHistoryCount, setPriceHistoryCount] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [refreshProgress, setRefreshProgress] = useState(null);
+  const [multipleResults, setMultipleResults] = useState(null);
 
   useEffect(() => {
     // Load currency preference
@@ -107,6 +108,14 @@ function GameDetailPage() {
             current: data.current,
             results: data.result ? [...(prev.results || []), data.result] : prev.results
           }));
+        } else if (data.type === 'multipleResults') {
+          // Show dropdown for user to select the correct result
+          setIsRefreshing(false);
+          setRefreshProgress(null);
+          setMultipleResults({
+            gameId: data.gameId,
+            results: data.results
+          });
         } else if (data.type === 'complete') {
           setRefreshProgress(prev => ({
             ...prev,
@@ -140,6 +149,22 @@ function GameDetailPage() {
       console.error(err);
       setIsRefreshing(false);
       setRefreshProgress(null);
+    }
+  };
+
+  const handleSelectResult = async (url) => {
+    setMultipleResults(null);
+    setIsRefreshing(true);
+
+    try {
+      await gamesApi.refreshMarketValueFromUrl(id, url);
+      loadGame();
+      alert('Market value updated successfully!');
+    } catch (err) {
+      alert('Failed to update market value from selected result');
+      console.error(err);
+    } finally {
+      setIsRefreshing(false);
     }
   };
 
@@ -555,6 +580,45 @@ function GameDetailPage() {
                 Close
               </button>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Multiple Results Selection Modal */}
+      {multipleResults && (
+        <div className="modal-overlay">
+          <div className="modal-content multiple-results-modal">
+            <h2>Multiple Results Found</h2>
+            <p>PriceCharting returned multiple results. Please select the correct game:</p>
+
+            <div className="results-list">
+              {multipleResults.results.map((result, index) => (
+                <div
+                  key={index}
+                  className="result-item-selectable"
+                  onClick={() => handleSelectResult(result.url)}
+                >
+                  <div className="result-info">
+                    <div className="result-name">{result.name}</div>
+                    <div className="result-platform">{result.platform}</div>
+                  </div>
+                  {result.previewPrice && (
+                    <div className="result-price">
+                      ${result.previewPrice.toFixed(2)}
+                    </div>
+                  )}
+                  <div className="result-arrow">→</div>
+                </div>
+              ))}
+            </div>
+
+            <button
+              onClick={() => setMultipleResults(null)}
+              className="btn btn-secondary"
+              style={{ marginTop: '1rem' }}
+            >
+              Cancel
+            </button>
           </div>
         </div>
       )}

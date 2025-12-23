@@ -171,15 +171,174 @@ function mapConditionToPriceCharting(condition) {
 }
 
 /**
+ * Parse search results from PriceCharting search page
+ * @param {Object} page - Puppeteer page object already on search results
+ * @returns {Array} - Array of search results with name, platform, url, and preview price
+ */
+async function parsePriceChartingSearchResults(page) {
+  return await page.evaluate(() => {
+    const rows = document.querySelectorAll('table.table.table-striped tbody tr, table#games_table tbody tr');
+    const results = [];
+
+    for (const row of rows) {
+      const link = row.querySelector('a[href*="/game/"]');
+      if (!link) continue;
+
+      const cells = Array.from(row.querySelectorAll('td'));
+      if (cells.length < 2) continue;
+
+      const nameCell = cells[0];
+      const name = nameCell.textContent.trim();
+      const url = link.href;
+
+      // Try to extract platform from the row text or URL
+      let platform = '';
+      const urlParts = url.split('/');
+      if (urlParts.length >= 5) {
+        // URL format: /game/{platform}/{game-name}
+        platform = urlParts[4].replace(/-/g, ' ');
+      }
+
+      // Try to get a preview price (usually in one of the later columns)
+      let previewPrice = null;
+      for (let i = 1; i < cells.length; i++) {
+        const cellText = cells[i].textContent.trim();
+        const priceMatch = cellText.match(/\$([0-9,]+\.?[0-9]*)/);
+        if (priceMatch) {
+          previewPrice = parseFloat(priceMatch[1].replace(/,/g, ''));
+          break;
+        }
+      }
+
+      results.push({
+        name,
+        platform,
+        url,
+        previewPrice
+      });
+    }
+
+    return results;
+  });
+}
+
+/**
+ * Scrape price from a specific PriceCharting URL
+ * @param {string} url - Direct URL to game page
+ * @param {string} condition - Game condition (Sealed, CIB, Loose, Box Only, Manual Only)
+ * @returns {number|null} - Price in USD or null if not found
+ */
+async function scrapePriceChartingFromUrl(url, condition = 'CIB (Complete in Box)') {
+  let browser;
+  try {
+    browser = await createBrowser();
+    const page = await browser.newPage();
+
+    await page.setViewport({ width: 1920, height: 1080 });
+    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+
+    await page.setJavaScriptEnabled(true);
+    await page.setExtraHTTPHeaders({
+      'Accept-Language': 'en-US,en;q=0.9',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
+    });
+
+    console.log(`Scraping PriceCharting from URL: ${url}`);
+
+    const response = await page.goto(url, {
+      waitUntil: 'networkidle2',
+      timeout: 30000
+    });
+
+    if (!response || response.status() === 404) {
+      console.log('URL returned 404');
+      return null;
+    }
+
+    await randomDelay(1000, 2000);
+
+    const targetCondition = mapConditionToPriceCharting(condition);
+    console.log(`Looking for condition: ${targetCondition}`);
+
+    const price = await page.evaluate((targetCondition) => {
+      const table = document.querySelector('table#games_table, table.prices, table.price_table, div.price-table table, table[id*="price"]');
+
+      if (!table) {
+        console.log('Price table not found');
+        return null;
+      }
+
+      const headerRow = table.querySelector('thead tr, tr:first-child');
+      if (!headerRow) {
+        console.log('Header row not found');
+        return null;
+      }
+
+      const headers = Array.from(headerRow.querySelectorAll('th, td'));
+      let targetColumnIndex = -1;
+
+      for (let i = 0; i < headers.length; i++) {
+        const headerText = headers[i].textContent.trim();
+        if (headerText.includes(targetCondition)) {
+          targetColumnIndex = i;
+          break;
+        }
+      }
+
+      if (targetColumnIndex === -1) {
+        for (let i = 0; i < headers.length; i++) {
+          const headerText = headers[i].textContent.trim().toLowerCase();
+          if (headerText.includes('price') || headerText.includes('value')) {
+            targetColumnIndex = i;
+            break;
+          }
+        }
+      }
+
+      if (targetColumnIndex === -1) {
+        return null;
+      }
+
+      const dataRows = Array.from(table.querySelectorAll('tbody tr, tr:not(:first-child)'));
+
+      for (const row of dataRows) {
+        const cells = Array.from(row.querySelectorAll('td'));
+        if (cells.length > targetColumnIndex) {
+          const priceCell = cells[targetColumnIndex];
+          const priceText = priceCell?.textContent.trim() || '';
+          const match = priceText.match(/\$([0-9,]+\.?[0-9]*)/);
+
+          if (match) {
+            return parseFloat(match[1].replace(/,/g, ''));
+          }
+        }
+      }
+
+      return null;
+    }, targetCondition);
+
+    return price;
+  } catch (error) {
+    console.error('PriceCharting URL scraping error:', error.message);
+    return null;
+  } finally {
+    if (browser) {
+      await browser.close();
+    }
+  }
+}
+
+/**
  * Fallback: Scrape price from PriceCharting.com using general search
  * This is used when platform-specific URL is not available or fails
  * @param {string} gameName - Name of the game
  * @param {string} platform - Gaming platform
  * @param {string} condition - Game condition (Sealed, CIB, Loose, Box Only, Manual Only)
  * @param {string} region - Game region (PAL, NTSC, NTSC-J, None, Other)
- * @returns {number|null} - Price in USD or null if not found
+ * @param {boolean} returnMultipleResults - If true, return all search results instead of auto-clicking
+ * @returns {number|null|Array} - Price in USD, null if not found, or array of results if returnMultipleResults is true
  */
-async function scrapePriceChartingGeneralSearch(gameName, platform, condition = 'CIB (Complete in Box)', region = 'PAL') {
+async function scrapePriceChartingGeneralSearch(gameName, platform, condition = 'CIB (Complete in Box)', region = 'PAL', returnMultipleResults = false) {
   let browser;
   try {
     browser = await createBrowser();
@@ -227,6 +386,14 @@ async function scrapePriceChartingGeneralSearch(gameName, platform, condition = 
     console.log(`On search results page: ${isSearchResults}`);
 
     if (isSearchResults) {
+      // If returnMultipleResults is true, parse and return all results
+      if (returnMultipleResults) {
+        console.log('Returning multiple search results for user selection');
+        const results = await parsePriceChartingSearchResults(page);
+        await browser.close();
+        return results;
+      }
+
       // Click on the first result that matches our platform AND region
       const clickedResult = await page.evaluate((regionPrefix, platformName) => {
         const rows = document.querySelectorAll('table.table.table-striped tbody tr, table#games_table tbody tr');
@@ -407,9 +574,10 @@ async function scrapePriceChartingGeneralSearch(gameName, platform, condition = 
  * @param {string} platform - Gaming platform
  * @param {string} condition - Game condition (Sealed, CIB, Loose, Box Only, Manual Only)
  * @param {string} region - Game region (PAL, NTSC, NTSC-J, None, Other)
- * @returns {number|null} - Price in USD or null if not found
+ * @param {boolean} returnMultipleResults - If true, return all search results instead of auto-selecting
+ * @returns {number|null|Array} - Price in USD, null if not found, or array of results if returnMultipleResults is true
  */
-async function scrapePriceCharting(gameName, platform, condition = 'CIB (Complete in Box)', region = 'PAL') {
+async function scrapePriceCharting(gameName, platform, condition = 'CIB (Complete in Box)', region = 'PAL', returnMultipleResults = false) {
   let browser;
   try {
     browser = await createBrowser();
@@ -432,7 +600,7 @@ async function scrapePriceCharting(gameName, platform, condition = 'CIB (Complet
     if (!consoleSlug) {
       console.log(`PriceCharting: No console mapping for ${platform} (${region}), using general search fallback`);
       await browser.close();
-      return await scrapePriceChartingGeneralSearch(gameName, platform, condition, region);
+      return await scrapePriceChartingGeneralSearch(gameName, platform, condition, region, returnMultipleResults);
     }
 
     // Generate game slug from game name
@@ -458,7 +626,26 @@ async function scrapePriceCharting(gameName, platform, condition = 'CIB (Complet
     if (!response || response.status() === 404) {
       console.log(`PriceCharting: Direct URL returned 404, falling back to search`);
       await browser.close();
-      return await scrapePriceChartingGeneralSearch(gameName, platform, condition, region);
+      return await scrapePriceChartingGeneralSearch(gameName, platform, condition, region, returnMultipleResults);
+    }
+
+    // Check if we're on a search results page instead of a game page
+    const isSearchResultsPage = await page.evaluate(() => {
+      const searchTable = document.querySelector('table.table.table-striped, table#games_table');
+      // Check if it's a search results page (has multiple game links)
+      if (searchTable) {
+        const gameLinks = searchTable.querySelectorAll('a[href*="/game/"]');
+        return gameLinks.length > 1;
+      }
+      return false;
+    });
+
+    // If we landed on search results and returnMultipleResults is true, parse them
+    if (isSearchResultsPage && returnMultipleResults) {
+      console.log('Landed on search results page, returning multiple results');
+      const results = await parsePriceChartingSearchResults(page);
+      await browser.close();
+      return results;
     }
 
     // Check if we actually landed on a game page (not a 404 or error page)
@@ -471,7 +658,7 @@ async function scrapePriceCharting(gameName, platform, condition = 'CIB (Complet
     if (!isGamePage) {
       console.log(`PriceCharting: Not a valid game page, falling back to search`);
       await browser.close();
-      return await scrapePriceChartingGeneralSearch(gameName, platform, condition, region);
+      return await scrapePriceChartingGeneralSearch(gameName, platform, condition, region, returnMultipleResults);
     }
 
     console.log(`PriceCharting: Successfully loaded game page via direct URL`);
@@ -666,14 +853,30 @@ async function scrapeFinnNo(gameName, platform) {
  * @param {string} platform - Gaming platform
  * @param {string} condition - Game condition (Sealed, CIB, Loose, Box Only, Manual Only)
  * @param {string} region - Game region (PAL, NTSC, NTSC-J, None, Other)
- * @returns {Object} - Object with market_value, selling_value, and currency
+ * @param {boolean} returnMultipleResults - If true, return all PriceCharting search results for user selection
+ * @returns {Object} - Object with market_value, selling_value, and currency, or multipleResults array
  */
-export async function getMarketValue(gameName, platform, condition = 'CIB (Complete in Box)', region = 'PAL') {
+export async function getMarketValue(gameName, platform, condition = 'CIB (Complete in Box)', region = 'PAL', returnMultipleResults = false) {
   console.log(`Fetching market value for: ${gameName} (${platform}) - Condition: ${condition}, Region: ${region}`);
+
+  // If returnMultipleResults is true, only query PriceCharting for search results
+  if (returnMultipleResults) {
+    const priceChartingResults = await scrapePriceCharting(gameName, platform, condition, region, true);
+
+    // If we got an array of results, return them for user selection
+    if (Array.isArray(priceChartingResults)) {
+      return {
+        multipleResults: priceChartingResults
+      };
+    }
+
+    // If we got a single price despite requesting multiple results, return it normally
+    // This happens if the direct URL worked
+  }
 
   // Run both scrapers in parallel
   const [priceChartingPrice, finnNoPrice] = await Promise.all([
-    scrapePriceCharting(gameName, platform, condition, region),
+    scrapePriceCharting(gameName, platform, condition, region, false),
     scrapeFinnNo(gameName, platform)
   ]);
 
@@ -718,5 +921,29 @@ export async function getMarketValue(gameName, platform, condition = 'CIB (Compl
       pricecharting: priceChartingPrice,
       finnno: finnNoPrice
     }
+  };
+}
+
+/**
+ * Export function to scrape from a specific PriceCharting URL
+ * Used when user selects a specific result from multiple search results
+ */
+export async function getPriceFromUrl(url, condition = 'CIB (Complete in Box)') {
+  const price = await scrapePriceChartingFromUrl(url, condition);
+
+  if (price === null) {
+    return {
+      market_value: null,
+      selling_value: null,
+      currency: 'USD'
+    };
+  }
+
+  const sellingValue = Math.round(price * 1.10 * 100) / 100;
+
+  return {
+    market_value: Math.round(price * 100) / 100,
+    selling_value: sellingValue,
+    currency: 'USD'
   };
 }
