@@ -14,6 +14,8 @@ function GameDetailPage() {
   const [currency, setCurrency] = useState('USD');
   const [showPriceHistory, setShowPriceHistory] = useState(false);
   const [priceHistoryCount, setPriceHistoryCount] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [refreshProgress, setRefreshProgress] = useState(null);
 
   useEffect(() => {
     // Load currency preference
@@ -69,13 +71,75 @@ function GameDetailPage() {
   };
 
   const handleRefreshMarket = async () => {
+    if (!window.confirm('Refresh market value? This may take a moment.')) return;
+
+    setIsRefreshing(true);
+    setRefreshProgress({
+      total: 1,
+      completed: 0,
+      succeeded: 0,
+      failed: 0,
+      skipped: 0,
+      current: null,
+      results: []
+    });
+
     try {
-      const response = await gamesApi.refreshMarketValue(id);
-      alert(response.data.message || 'Market value refreshed successfully');
-      loadGame();
+      await gamesApi.refreshMarketValueSSE(id, (data) => {
+        // Handle different event types
+        if (data.type === 'start') {
+          setRefreshProgress({
+            total: data.total,
+            completed: 0,
+            succeeded: 0,
+            failed: 0,
+            skipped: 0,
+            current: null,
+            results: []
+          });
+        } else if (data.type === 'progress') {
+          setRefreshProgress(prev => ({
+            ...prev,
+            completed: data.completed,
+            succeeded: data.stats.succeeded,
+            failed: data.stats.failed,
+            skipped: data.stats.skipped,
+            current: data.current,
+            results: data.result ? [...(prev.results || []), data.result] : prev.results
+          }));
+        } else if (data.type === 'complete') {
+          setRefreshProgress(prev => ({
+            ...prev,
+            completed: data.results.total,
+            succeeded: data.results.succeeded,
+            failed: data.results.failed,
+            skipped: data.results.skipped,
+            current: null,
+            isComplete: true,
+            details: data.results.details
+          }));
+
+          // Refresh the game details
+          setTimeout(() => {
+            loadGame();
+            setIsRefreshing(false);
+
+            // Close progress modal after a short delay
+            setTimeout(() => {
+              setRefreshProgress(null);
+            }, 3000);
+          }, 1000);
+        } else if (data.type === 'error') {
+          alert('Failed to refresh market value: ' + data.message);
+          setIsRefreshing(false);
+          setRefreshProgress(null);
+        }
+      });
     } catch (err) {
       alert('Failed to refresh market value');
       console.error(err);
+      setIsRefreshing(false);
+      setRefreshProgress(null);
     }
   };
 
@@ -350,6 +414,149 @@ function GameDetailPage() {
           mode="detailed"
           onClose={() => setShowPriceHistory(false)}
         />
+      )}
+
+      {/* Refresh Progress Modal */}
+      {refreshProgress && (
+        <div className="modal-overlay">
+          <div className="modal-content refresh-progress-modal">
+            <h2>Refreshing Market Value</h2>
+
+            {/* Progress Bar */}
+            <div className="progress-info">
+              <div className="progress-bar-container">
+                <div
+                  className="progress-bar"
+                  style={{
+                    width: `${(refreshProgress.completed / refreshProgress.total) * 100}%`
+                  }}
+                ></div>
+              </div>
+              <p className="progress-text">
+                {refreshProgress.completed} of {refreshProgress.total} game processed
+              </p>
+            </div>
+
+            {/* Statistics */}
+            <div className="progress-stats">
+              <div className="stat-item success">
+                <span className="stat-icon">✓</span>
+                <span className="stat-label">Succeeded:</span>
+                <span className="stat-value">{refreshProgress.succeeded}</span>
+              </div>
+              <div className="stat-item failed">
+                <span className="stat-icon">✗</span>
+                <span className="stat-label">Failed:</span>
+                <span className="stat-value">{refreshProgress.failed}</span>
+              </div>
+              {refreshProgress.skipped > 0 && (
+                <div className="stat-item skipped">
+                  <span className="stat-icon">⊝</span>
+                  <span className="stat-label">Skipped:</span>
+                  <span className="stat-value">{refreshProgress.skipped}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Current Game Being Processed */}
+            {refreshProgress.current && (
+              <div className="current-game-card">
+                <div className="current-game-header">
+                  <div className="spinner"></div>
+                  <h3>Processing...</h3>
+                </div>
+                <div className="current-game-content">
+                  {refreshProgress.current.coverUrl && (
+                    <img
+                      src={refreshProgress.current.coverUrl}
+                      alt={refreshProgress.current.name}
+                      className="current-game-cover"
+                    />
+                  )}
+                  <div className="current-game-details">
+                    <h4>{refreshProgress.current.name}</h4>
+                    <div className="current-game-meta">
+                      <span className="meta-item">
+                        <strong>Platform:</strong> {refreshProgress.current.platform}
+                      </span>
+                      {refreshProgress.current.condition && (
+                        <span className="meta-item">
+                          <strong>Condition:</strong> {refreshProgress.current.condition}
+                        </span>
+                      )}
+                      {refreshProgress.current.region && (
+                        <span className="meta-item">
+                          <strong>Region:</strong> {refreshProgress.current.region}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Results List */}
+            {refreshProgress.results && refreshProgress.results.length > 0 && (
+              <div className="results-list">
+                <h3>Result</h3>
+                <div className="results-scroll">
+                  {refreshProgress.results.map((result, idx) => (
+                    <div key={idx} className={`result-item ${result.status}`}>
+                      <span className="result-icon">
+                        {result.status === 'success' && '✓'}
+                        {result.status === 'failed' && '✗'}
+                        {result.status === 'skipped' && '⊝'}
+                      </span>
+                      <div className="result-details">
+                        <div className="result-name">{result.name}</div>
+                        {result.status === 'success' && result.newValue !== undefined && (
+                          <div className="result-value">
+                            {result.oldValue !== null ? (
+                              <>
+                                {result.oldValue} {result.currency} → {result.newValue} {result.currency}
+                                <span className={result.newValue > result.oldValue ? 'change-up' : 'change-down'}>
+                                  {' '}({result.newValue > result.oldValue ? '+' : ''}
+                                  {((result.newValue - result.oldValue) / (result.oldValue || 1) * 100).toFixed(1)}%)
+                                </span>
+                              </>
+                            ) : (
+                              <>New: {result.newValue} {result.currency}</>
+                            )}
+                          </div>
+                        )}
+                        {result.status === 'failed' && (
+                          <div className="result-message error">{result.message}</div>
+                        )}
+                        {result.status === 'skipped' && (
+                          <div className="result-message">{result.message}</div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Completion Summary */}
+            {refreshProgress.isComplete && (
+              <div className="completion-message">
+                <h3>✓ Refresh Complete!</h3>
+                <p>Market value has been processed.</p>
+              </div>
+            )}
+
+            {/* Close Button */}
+            {!isRefreshing && (
+              <button
+                onClick={() => setRefreshProgress(null)}
+                className="btn btn-primary"
+                style={{ marginTop: '1rem' }}
+              >
+                Close
+              </button>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );

@@ -319,6 +319,199 @@ export async function refreshMarketValue(req, res) {
 }
 
 /**
+ * Refresh market value for a single game using SSE (Server-Sent Events)
+ * Provides real-time progress updates similar to batch refresh
+ */
+export async function refreshMarketValueSSE(req, res) {
+  try {
+    const id = req.params.id;
+    const game = statements.getGameById.get(id);
+
+    if (!game) {
+      return res.status(404).json({ error: 'Game not found' });
+    }
+
+    // Set up SSE headers
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive'
+    });
+
+    // Helper function to send SSE message
+    const sendUpdate = (data) => {
+      res.write(`data: ${JSON.stringify(data)}\n\n`);
+    };
+
+    // Send initial start event
+    sendUpdate({
+      type: 'start',
+      total: 1
+    });
+
+    // Send progress with current game info
+    sendUpdate({
+      type: 'progress',
+      completed: 0,
+      total: 1,
+      current: {
+        id: game.id,
+        name: game.name,
+        platform: game.platform,
+        condition: game.condition,
+        region: game.region,
+        coverUrl: game.igdb_cover_url
+      },
+      stats: {
+        succeeded: 0,
+        failed: 0,
+        skipped: 0
+      }
+    });
+
+    // Check if game is sold
+    if (game.sold_value !== null) {
+      sendUpdate({
+        type: 'progress',
+        completed: 1,
+        total: 1,
+        current: null,
+        result: {
+          id,
+          status: 'skipped',
+          message: 'Game is sold',
+          name: game.name
+        },
+        stats: {
+          succeeded: 0,
+          failed: 0,
+          skipped: 1
+        }
+      });
+
+      sendUpdate({
+        type: 'complete',
+        results: {
+          total: 1,
+          succeeded: 0,
+          failed: 0,
+          skipped: 1,
+          details: [{
+            id,
+            status: 'skipped',
+            message: 'Game is sold',
+            name: game.name
+          }]
+        }
+      });
+
+      res.end();
+      return;
+    }
+
+    // Fetch new market value
+    const marketData = await getMarketValue(game.name, game.platform, game.condition, game.region);
+
+    // Process result
+    if (marketData.market_value !== null) {
+      statements.updateMarketValue.run(
+        marketData.market_value,
+        marketData.selling_value,
+        marketData.currency,
+        marketData.currency,
+        id
+      );
+
+      // Determine the source for price history
+      let source = 'manual';
+      const { pricecharting, finnno } = marketData.sources;
+
+      if (finnno !== null) {
+        source = 'finn';
+      } else if (pricecharting !== null) {
+        source = 'pricecharting';
+      }
+
+      // Record price history
+      recordPriceHistory(id, marketData.market_value, source);
+
+      const detail = {
+        id,
+        status: 'success',
+        name: game.name,
+        platform: game.platform,
+        oldValue: game.market_value,
+        newValue: marketData.market_value,
+        currency: marketData.currency,
+        sources: marketData.sources
+      };
+
+      sendUpdate({
+        type: 'progress',
+        completed: 1,
+        total: 1,
+        current: null,
+        result: detail,
+        stats: {
+          succeeded: 1,
+          failed: 0,
+          skipped: 0
+        }
+      });
+
+      sendUpdate({
+        type: 'complete',
+        results: {
+          total: 1,
+          succeeded: 1,
+          failed: 0,
+          skipped: 0,
+          details: [detail]
+        }
+      });
+    } else {
+      const detail = {
+        id,
+        status: 'failed',
+        message: 'No market data found',
+        name: game.name,
+        platform: game.platform
+      };
+
+      sendUpdate({
+        type: 'progress',
+        completed: 1,
+        total: 1,
+        current: null,
+        result: detail,
+        stats: {
+          succeeded: 0,
+          failed: 1,
+          skipped: 0
+        }
+      });
+
+      sendUpdate({
+        type: 'complete',
+        results: {
+          total: 1,
+          succeeded: 0,
+          failed: 1,
+          skipped: 0,
+          details: [detail]
+        }
+      });
+    }
+
+    res.end();
+  } catch (error) {
+    console.error('Error refreshing market value:', error);
+    res.write(`data: ${JSON.stringify({ type: 'error', message: error.message })}\n\n`);
+    res.end();
+  }
+}
+
+/**
  * Export all games to CSV
  */
 export async function exportToCSV(req, res) {
