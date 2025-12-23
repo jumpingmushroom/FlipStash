@@ -10,6 +10,7 @@ import {
   exportToCSV,
   importFromCSV,
   getAcquisitionSources,
+  updatePostedOnline,
   batchUpdatePostedOnline,
   batchUpdateCondition,
   batchDeleteGames,
@@ -44,6 +45,7 @@ router.delete('/:id', deleteGame);
 
 // More specific routes
 router.post('/:id/refresh-market-value', refreshMarketValue);
+router.put('/:id/posted-online', updatePostedOnline);
 router.get('/:id/price-history', getGamePriceHistory);
 
 export default router;
