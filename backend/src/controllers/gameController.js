@@ -806,3 +806,221 @@ export async function batchRefreshMarketValues(req, res) {
     res.status(500).json({ error: 'Failed to batch refresh market values' });
   }
 }
+
+/**
+ * Batch refresh market values with Server-Sent Events for real-time progress
+ */
+export async function batchRefreshMarketValuesSSE(req, res) {
+  try {
+    const { gameIds } = req.body;
+
+    if (!Array.isArray(gameIds) || gameIds.length === 0) {
+      return res.status(400).json({ error: 'gameIds array is required' });
+    }
+
+    // Set up SSE headers
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive'
+    });
+
+    const results = {
+      total: gameIds.length,
+      succeeded: 0,
+      failed: 0,
+      skipped: 0,
+      details: []
+    };
+
+    // Helper function to send SSE message
+    const sendUpdate = (data) => {
+      res.write(`data: ${JSON.stringify(data)}\n\n`);
+    };
+
+    // Send initial progress
+    sendUpdate({
+      type: 'start',
+      total: gameIds.length
+    });
+
+    // Process each game
+    for (let i = 0; i < gameIds.length; i++) {
+      const id = gameIds[i];
+
+      try {
+        const game = statements.getGameById.get(id);
+
+        if (!game) {
+          results.failed++;
+          const detail = { id, status: 'failed', message: 'Game not found' };
+          results.details.push(detail);
+
+          sendUpdate({
+            type: 'progress',
+            completed: i + 1,
+            total: gameIds.length,
+            current: null,
+            result: detail,
+            stats: {
+              succeeded: results.succeeded,
+              failed: results.failed,
+              skipped: results.skipped
+            }
+          });
+          continue;
+        }
+
+        // Send progress update with current game info
+        sendUpdate({
+          type: 'progress',
+          completed: i,
+          total: gameIds.length,
+          current: {
+            id: game.id,
+            name: game.name,
+            platform: game.platform,
+            condition: game.condition,
+            region: game.region,
+            coverUrl: game.igdb_cover_url
+          },
+          stats: {
+            succeeded: results.succeeded,
+            failed: results.failed,
+            skipped: results.skipped
+          }
+        });
+
+        // Skip sold games
+        if (game.sold_value !== null) {
+          results.skipped++;
+          const detail = { id, status: 'skipped', message: 'Game is sold', name: game.name };
+          results.details.push(detail);
+
+          sendUpdate({
+            type: 'progress',
+            completed: i + 1,
+            total: gameIds.length,
+            current: null,
+            result: detail,
+            stats: {
+              succeeded: results.succeeded,
+              failed: results.failed,
+              skipped: results.skipped
+            }
+          });
+          continue;
+        }
+
+        // Fetch new market value with condition and region
+        const marketData = await getMarketValue(game.name, game.platform, game.condition, game.region);
+
+        // Only update if we got valid data
+        if (marketData.market_value !== null) {
+          statements.updateMarketValue.run(
+            marketData.market_value,
+            marketData.selling_value,
+            marketData.currency,
+            marketData.currency,
+            id
+          );
+
+          // Determine the source for price history
+          let source = 'manual';
+          const { pricecharting, finnno } = marketData.sources;
+
+          if (finnno !== null) {
+            source = 'finn';
+          } else if (pricecharting !== null) {
+            source = 'pricecharting';
+          }
+
+          // Record price history
+          recordPriceHistory(id, marketData.market_value, source);
+
+          results.succeeded++;
+          const detail = {
+            id,
+            status: 'success',
+            name: game.name,
+            platform: game.platform,
+            oldValue: game.market_value,
+            newValue: marketData.market_value,
+            currency: marketData.currency,
+            sources: marketData.sources
+          };
+          results.details.push(detail);
+
+          sendUpdate({
+            type: 'progress',
+            completed: i + 1,
+            total: gameIds.length,
+            current: null,
+            result: detail,
+            stats: {
+              succeeded: results.succeeded,
+              failed: results.failed,
+              skipped: results.skipped
+            }
+          });
+        } else {
+          results.failed++;
+          const detail = {
+            id,
+            status: 'failed',
+            message: 'No market data found',
+            name: game.name,
+            platform: game.platform
+          };
+          results.details.push(detail);
+
+          sendUpdate({
+            type: 'progress',
+            completed: i + 1,
+            total: gameIds.length,
+            current: null,
+            result: detail,
+            stats: {
+              succeeded: results.succeeded,
+              failed: results.failed,
+              skipped: results.skipped
+            }
+          });
+        }
+      } catch (error) {
+        results.failed++;
+        const detail = {
+          id,
+          status: 'failed',
+          message: error.message
+        };
+        results.details.push(detail);
+
+        sendUpdate({
+          type: 'progress',
+          completed: i + 1,
+          total: gameIds.length,
+          current: null,
+          result: detail,
+          stats: {
+            succeeded: results.succeeded,
+            failed: results.failed,
+            skipped: results.skipped
+          }
+        });
+      }
+    }
+
+    // Send completion message
+    sendUpdate({
+      type: 'complete',
+      results
+    });
+
+    res.end();
+  } catch (error) {
+    console.error('Error batch refreshing market values:', error);
+    res.write(`data: ${JSON.stringify({ type: 'error', message: error.message })}\n\n`);
+    res.end();
+  }
+}
