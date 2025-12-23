@@ -219,14 +219,14 @@ export const statements = {
   getAllGamesWithLastRefresh: db.prepare(`
     SELECT
       g.*,
-      ph.market_value as latest_historical_value,
-      ph.recorded_at as latest_history_recorded_at
+      ph.market_value as first_historical_value,
+      ph.recorded_at as first_history_recorded_at
     FROM games g
     LEFT JOIN (
       SELECT game_id, market_value, recorded_at
       FROM price_history ph1
       WHERE recorded_at = (
-        SELECT MAX(recorded_at)
+        SELECT MIN(recorded_at)
         FROM price_history ph2
         WHERE ph2.game_id = ph1.game_id
       )
