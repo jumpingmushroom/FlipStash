@@ -24,6 +24,42 @@ export const gamesApi = {
     return api.get('/games/igdb/search', { params });
   },
   refreshMarketValue: (id) => api.post(`/games/${id}/refresh-market-value`),
+  refreshMarketValueSSE: (id, onProgress) => {
+    // Use fetch API for SSE instead of axios
+    return fetch(`${API_BASE_URL}/api/games/${id}/refresh-market-value-sse`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    }).then(response => {
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      const processStream = () => {
+        return reader.read().then(({ done, value }) => {
+          if (done) {
+            return;
+          }
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n\n');
+          buffer = lines.pop(); // Keep incomplete line in buffer
+
+          lines.forEach(line => {
+            if (line.startsWith('data: ')) {
+              const data = JSON.parse(line.substring(6));
+              onProgress(data);
+            }
+          });
+
+          return processStream();
+        });
+      };
+
+      return processStream();
+    });
+  },
   updatePostedOnline: (id, posted_online) => api.put(`/games/${id}/posted-online`, { posted_online }),
   exportCSV: () => api.get('/games/export/csv', { responseType: 'blob' }),
   importCSV: (csvData, mode, defaultCurrency) => api.post('/games/import/csv', { csv: csvData, mode, defaultCurrency }),
