@@ -59,12 +59,12 @@ export async function getRefreshDashboard(req, res) {
       let priceChange = null;
       let priceChangePercentage = null;
 
-      if (game.latest_historical_value && game.market_value) {
-        const diff = game.market_value - game.latest_historical_value;
+      if (game.first_historical_value && game.market_value) {
+        const diff = game.market_value - game.first_historical_value;
         priceChange = diff;
         priceChangePercentage = calculatePriceChange(
           game.market_value,
-          game.latest_historical_value
+          game.first_historical_value
         );
       }
 
@@ -74,8 +74,8 @@ export async function getRefreshDashboard(req, res) {
         platform: game.platform,
         market_value: game.market_value,
         last_refresh_at: game.last_refresh_at,
-        latest_historical_value: game.latest_historical_value,
-        latest_history_recorded_at: game.latest_history_recorded_at,
+        first_historical_value: game.first_historical_value,
+        first_history_recorded_at: game.first_history_recorded_at,
         price_change: priceChange,
         price_change_percentage: priceChangePercentage,
         igdb_cover_url: game.igdb_cover_url
