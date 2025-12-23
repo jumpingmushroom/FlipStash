@@ -13,7 +13,8 @@ import {
   batchUpdatePostedOnline,
   batchUpdateCondition,
   batchDeleteGames,
-  batchRefreshMarketValues
+  batchRefreshMarketValues,
+  batchRefreshMarketValuesSSE
 } from '../controllers/gameController.js';
 import {
   getGamePriceHistory,
@@ -32,6 +33,7 @@ router.post('/batch/posted-online', batchUpdatePostedOnline);
 router.post('/batch/condition', batchUpdateCondition);
 router.post('/batch/delete', batchDeleteGames);
 router.post('/batch/refresh-market-values', batchRefreshMarketValues);
+router.post('/batch/refresh-market-values-sse', batchRefreshMarketValuesSSE);
 
 // CRUD routes
 router.get('/', getAllGames);

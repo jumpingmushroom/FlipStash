@@ -169,36 +169,66 @@ function HomePage({ games, currency, onEdit, onDelete, onRefreshMarket, onGamesU
       completed: 0,
       succeeded: 0,
       failed: 0,
-      current: unsoldSelectedGames[0]?.name || ''
+      skipped: 0,
+      current: null,
+      results: []
     });
 
     try {
-      const response = await gamesApi.batchRefreshMarketValues(unsoldSelectedGames.map(g => g.id));
+      await gamesApi.batchRefreshMarketValuesSSE(
+        unsoldSelectedGames.map(g => g.id),
+        (data) => {
+          // Handle different event types
+          if (data.type === 'start') {
+            setRefreshProgress({
+              total: data.total,
+              completed: 0,
+              succeeded: 0,
+              failed: 0,
+              skipped: 0,
+              current: null,
+              results: []
+            });
+          } else if (data.type === 'progress') {
+            setRefreshProgress(prev => ({
+              ...prev,
+              completed: data.completed,
+              succeeded: data.stats.succeeded,
+              failed: data.stats.failed,
+              skipped: data.stats.skipped,
+              current: data.current,
+              results: data.result ? [...(prev.results || []), data.result] : prev.results
+            }));
+          } else if (data.type === 'complete') {
+            setRefreshProgress(prev => ({
+              ...prev,
+              completed: data.results.total,
+              succeeded: data.results.succeeded,
+              failed: data.results.failed,
+              skipped: data.results.skipped,
+              current: null,
+              isComplete: true,
+              details: data.results.details
+            }));
 
-      if (response.data.success) {
-        const results = response.data.results;
-        setRefreshProgress({
-          total: results.total,
-          completed: results.total,
-          succeeded: results.succeeded,
-          failed: results.failed,
-          skipped: results.skipped,
-          current: 'Complete',
-          details: results.details
-        });
+            // Refresh the games list
+            setTimeout(() => {
+              onGamesUpdate();
+              setIsRefreshing(false);
+              setSelectedGameIds([]);
 
-        // Refresh the games list
-        setTimeout(() => {
-          onGamesUpdate();
-          setIsRefreshing(false);
-          setSelectedGameIds([]);
-
-          // Close progress modal after a short delay
-          setTimeout(() => {
+              // Close progress modal after a short delay
+              setTimeout(() => {
+                setRefreshProgress(null);
+              }, 3000);
+            }, 1000);
+          } else if (data.type === 'error') {
+            alert('Failed to refresh market values: ' + data.message);
+            setIsRefreshing(false);
             setRefreshProgress(null);
-          }, 3000);
-        }, 1000);
-      }
+          }
+        }
+      );
     } catch (err) {
       alert('Failed to refresh market values');
       console.error(err);
@@ -409,9 +439,10 @@ function HomePage({ games, currency, onEdit, onDelete, onRefreshMarket, onGamesU
       {/* Batch Refresh Progress Modal */}
       {refreshProgress && (
         <div className="modal-overlay">
-          <div className="modal-content">
+          <div className="modal-content refresh-progress-modal">
             <h2>Refreshing Market Values</h2>
 
+            {/* Progress Bar */}
             <div className="progress-info">
               <div className="progress-bar-container">
                 <div
@@ -426,29 +457,115 @@ function HomePage({ games, currency, onEdit, onDelete, onRefreshMarket, onGamesU
               </p>
             </div>
 
-            {refreshProgress.current !== 'Complete' && (
-              <p className="current-game">Processing: {refreshProgress.current}</p>
-            )}
+            {/* Statistics */}
+            <div className="progress-stats">
+              <div className="stat-item success">
+                <span className="stat-icon">✓</span>
+                <span className="stat-label">Succeeded:</span>
+                <span className="stat-value">{refreshProgress.succeeded}</span>
+              </div>
+              <div className="stat-item failed">
+                <span className="stat-icon">✗</span>
+                <span className="stat-label">Failed:</span>
+                <span className="stat-value">{refreshProgress.failed}</span>
+              </div>
+              {refreshProgress.skipped > 0 && (
+                <div className="stat-item skipped">
+                  <span className="stat-icon">⊝</span>
+                  <span className="stat-label">Skipped:</span>
+                  <span className="stat-value">{refreshProgress.skipped}</span>
+                </div>
+              )}
+            </div>
 
-            {refreshProgress.current === 'Complete' && (
-              <div className="progress-summary">
-                <h3>Refresh Complete!</h3>
-                <div className="summary-stats">
-                  <div className="summary-stat success">
-                    ✓ Succeeded: {refreshProgress.succeeded}
-                  </div>
-                  <div className="summary-stat failed">
-                    ✗ Failed: {refreshProgress.failed}
-                  </div>
-                  {refreshProgress.skipped > 0 && (
-                    <div className="summary-stat skipped">
-                      ⊝ Skipped: {refreshProgress.skipped}
-                    </div>
+            {/* Current Game Being Processed */}
+            {refreshProgress.current && (
+              <div className="current-game-card">
+                <div className="current-game-header">
+                  <div className="spinner"></div>
+                  <h3>Processing...</h3>
+                </div>
+                <div className="current-game-content">
+                  {refreshProgress.current.coverUrl && (
+                    <img
+                      src={refreshProgress.current.coverUrl}
+                      alt={refreshProgress.current.name}
+                      className="current-game-cover"
+                    />
                   )}
+                  <div className="current-game-details">
+                    <h4>{refreshProgress.current.name}</h4>
+                    <div className="current-game-meta">
+                      <span className="meta-item">
+                        <strong>Platform:</strong> {refreshProgress.current.platform}
+                      </span>
+                      {refreshProgress.current.condition && (
+                        <span className="meta-item">
+                          <strong>Condition:</strong> {refreshProgress.current.condition}
+                        </span>
+                      )}
+                      {refreshProgress.current.region && (
+                        <span className="meta-item">
+                          <strong>Region:</strong> {refreshProgress.current.region}
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
 
+            {/* Completed Games List (show last 5) */}
+            {refreshProgress.results && refreshProgress.results.length > 0 && (
+              <div className="results-list">
+                <h3>Recent Results</h3>
+                <div className="results-scroll">
+                  {refreshProgress.results.slice(-5).reverse().map((result, idx) => (
+                    <div key={idx} className={`result-item ${result.status}`}>
+                      <span className="result-icon">
+                        {result.status === 'success' && '✓'}
+                        {result.status === 'failed' && '✗'}
+                        {result.status === 'skipped' && '⊝'}
+                      </span>
+                      <div className="result-details">
+                        <div className="result-name">{result.name}</div>
+                        {result.status === 'success' && result.newValue !== undefined && (
+                          <div className="result-value">
+                            {result.oldValue !== null ? (
+                              <>
+                                {result.oldValue} {result.currency} → {result.newValue} {result.currency}
+                                <span className={result.newValue > result.oldValue ? 'change-up' : 'change-down'}>
+                                  {' '}({result.newValue > result.oldValue ? '+' : ''}
+                                  {((result.newValue - result.oldValue) / (result.oldValue || 1) * 100).toFixed(1)}%)
+                                </span>
+                              </>
+                            ) : (
+                              <>New: {result.newValue} {result.currency}</>
+                            )}
+                          </div>
+                        )}
+                        {result.status === 'failed' && (
+                          <div className="result-message error">{result.message}</div>
+                        )}
+                        {result.status === 'skipped' && (
+                          <div className="result-message">{result.message}</div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Completion Summary */}
+            {refreshProgress.isComplete && (
+              <div className="completion-message">
+                <h3>✓ Refresh Complete!</h3>
+                <p>All market values have been processed.</p>
+              </div>
+            )}
+
+            {/* Close Button */}
             {!isRefreshing && (
               <button
                 onClick={() => setRefreshProgress(null)}
