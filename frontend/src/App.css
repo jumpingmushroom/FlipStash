@@ -1245,6 +1245,59 @@ body {
 }
 
 /* List View Styles */
+.game-list-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background-color: rgba(99, 102, 241, 0.1);
+  border-radius: 8px 8px 0 0;
+  border: 1px solid var(--border-color);
+  border-bottom: 2px solid var(--border-color);
+  margin-bottom: 0.75rem;
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-primary);
+}
+
+.game-list-header-checkbox {
+  flex-shrink: 0;
+  width: 18px;
+}
+
+.game-list-header-cover {
+  flex-shrink: 0;
+  width: 50px;
+}
+
+.game-list-header-info {
+  flex: 1;
+  min-width: 200px;
+}
+
+.game-list-header-condition {
+  flex-shrink: 0;
+  min-width: 100px;
+}
+
+.game-list-header-value {
+  flex-shrink: 0;
+  min-width: 100px;
+}
+
+.game-list-header-badges {
+  flex-shrink: 0;
+  min-width: 100px;
+}
+
+.game-list-header-actions {
+  flex-shrink: 0;
+  min-width: 140px;
+  text-align: center;
+}
+
 .game-list-item {
   display: flex;
   align-items: center;
