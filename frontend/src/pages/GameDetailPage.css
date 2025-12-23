@@ -666,3 +666,68 @@
 .results-scroll::-webkit-scrollbar-thumb:hover {
   background: var(--primary-color);
 }
+
+/* Multiple Results Selection Modal */
+.multiple-results-modal {
+  max-width: 600px;
+}
+
+.multiple-results-modal h2 {
+  margin-bottom: 0.5rem;
+}
+
+.multiple-results-modal p {
+  color: var(--text-secondary);
+  margin-bottom: 1.5rem;
+}
+
+.result-item-selectable {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background-color: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  margin-bottom: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.result-item-selectable:hover {
+  background-color: var(--background-color);
+  border-color: var(--primary-color);
+  transform: translateX(4px);
+}
+
+.result-info {
+  flex: 1;
+}
+
+.result-name {
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+}
+
+.result-platform {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.result-price {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--primary-color);
+}
+
+.result-arrow {
+  font-size: 1.5rem;
+  color: var(--primary-color);
+  opacity: 0.5;
+  transition: opacity 0.2s;
+}
+
+.result-item-selectable:hover .result-arrow {
+  opacity: 1;
+}
