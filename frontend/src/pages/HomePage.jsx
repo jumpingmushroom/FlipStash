@@ -420,6 +420,18 @@ function HomePage({ games, currency, onEdit, onDelete, onRefreshMarket, onGamesU
         </div>
       ) : (
         <div className={`games-container games-${viewMode}`}>
+          {viewMode === 'list' && (
+            <div className="game-list-header">
+              <div className="game-list-header-checkbox"></div>
+              <div className="game-list-header-cover"></div>
+              <div className="game-list-header-info">Game</div>
+              <div className="game-list-header-condition">Condition</div>
+              <div className="game-list-header-value">Purchase</div>
+              <div className="game-list-header-value">Market</div>
+              <div className="game-list-header-badges">Status</div>
+              <div className="game-list-header-actions">Actions</div>
+            </div>
+          )}
           {filteredGames.map(game => (
             <GameCard
               key={game.id}
