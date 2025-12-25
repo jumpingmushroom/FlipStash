@@ -790,36 +790,40 @@ async function scrapePriceCharting(gameName, platform, condition = 'CIB (Complet
     if (returnMultipleResults) {
       const currentUrl = page.url();
 
-      // Extract game name and platform from the page if possible
-      const pageInfo = await page.evaluate(() => {
+      // Extract game name from the page
+      const pageGameName = await page.evaluate(() => {
         // Try to get the game title from the page
         const titleEl = document.querySelector('h1, .title, [class*="product-title"]');
-        const gameName = titleEl ? titleEl.textContent.trim() : '';
-
-        // Try to get the platform from breadcrumbs or page structure
-        const breadcrumbs = document.querySelectorAll('.breadcrumb a, nav a');
-        let platform = '';
-        for (const crumb of breadcrumbs) {
-          const text = crumb.textContent.trim();
-          if (text && !text.toLowerCase().includes('home') && !text.toLowerCase().includes('games')) {
-            platform = text;
-            break;
-          }
-        }
-
-        return { gameName, platform };
+        return titleEl ? titleEl.textContent.trim() : '';
       });
 
       await browser.close();
 
       if (price !== null) {
-        const displayName = pageInfo.platform
-          ? `${pageInfo.gameName || gameName} (${pageInfo.platform})`
-          : (pageInfo.gameName || gameName);
+        // Extract platform from URL - more reliable than page scraping
+        // URL format: /game/{platform-slug}/{game-name}
+        const urlParts = currentUrl.split('/');
+        let extractedPlatform = '';
+
+        if (urlParts.length >= 6 && urlParts[4]) {
+          // Platform is at index 4: ['https:', '', 'www.pricecharting.com', 'game', 'pal-playstation-4', 'god-of-war']
+          const platformSlug = urlParts[4];
+          // Convert slug to readable format: "pal-playstation-4" -> "PAL Playstation 4"
+          extractedPlatform = platformSlug
+            .split('-')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
+        }
+
+        const finalPlatform = extractedPlatform || platform;
+        const finalGameName = pageGameName || gameName;
+        const displayName = finalPlatform
+          ? `${finalGameName} (${finalPlatform})`
+          : finalGameName;
 
         return [{
           name: displayName,
-          platform: pageInfo.platform || platform,
+          platform: finalPlatform,
           url: currentUrl,
           previewPrice: price
         }];
