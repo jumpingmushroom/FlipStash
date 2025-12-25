@@ -564,13 +564,48 @@ export async function refreshMarketValueSSE(req, res) {
 
       // Check if we got multiple results for user selection
       if (marketData.multipleResults) {
-        sendUpdate({
-          type: 'multipleResults',
-          gameId: id,
-          results: marketData.multipleResults
-        });
-        res.end();
-        return;
+        const { pricecharting, finnno } = marketData.multipleResults;
+        const totalResults = (pricecharting?.length || 0) + (finnno?.length || 0);
+
+        // If only one result total, automatically select it
+        if (totalResults === 1) {
+          const selectedUrl = pricecharting?.length === 1 ? pricecharting[0].url : finnno[0].url;
+          const source = pricecharting?.length === 1 ? 'pricecharting' : 'finnno';
+
+          // Save the URL to database
+          if (source === 'pricecharting') {
+            statements.updatePriceUrls.run(selectedUrl, null, id);
+          } else {
+            statements.updatePriceUrls.run(null, selectedUrl, id);
+          }
+
+          // Fetch price from the selected URL
+          const priceData = await getPriceFromUrl(selectedUrl, game.condition);
+
+          if (priceData.market_value !== null) {
+            marketData = {
+              market_value: priceData.market_value,
+              selling_value: Math.round(priceData.market_value * 1.10 * 100) / 100,
+              currency: priceData.currency,
+              sources: {
+                pricecharting: source === 'pricecharting' ? priceData.market_value : null,
+                finnno: source === 'finnno' ? priceData.market_value : null
+              }
+            };
+          } else {
+            // No price found, treat as failed
+            marketData = { market_value: null, selling_value: null, currency: 'USD', sources: {} };
+          }
+        } else {
+          // Multiple results, show modal for user selection
+          sendUpdate({
+            type: 'multipleResults',
+            gameId: id,
+            results: marketData.multipleResults
+          });
+          res.end();
+          return;
+        }
       }
     }
 
