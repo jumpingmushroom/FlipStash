@@ -1244,6 +1244,11 @@ body {
   color: white;
 }
 
+.badge-sold {
+  background-color: var(--text-secondary);
+  color: var(--bg-color);
+}
+
 /* List View Styles */
 .game-list-header {
   display: flex;

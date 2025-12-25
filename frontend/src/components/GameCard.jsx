@@ -63,9 +63,11 @@ function GameCard({ game, currency = 'USD', onEdit, onDelete, onRefreshMarket, i
           {game.acquisition_source && (
             <span className="badge badge-source">{game.acquisition_source}</span>
           )}
-          {game.posted_online === 1 && (
+          {isSold ? (
+            <span className="badge badge-sold">Sold</span>
+          ) : game.posted_online === 1 ? (
             <span className="badge badge-posted">Posted</span>
-          )}
+          ) : null}
         </div>
 
         <div className="game-list-actions" onClick={(e) => e.stopPropagation()}>
@@ -112,11 +114,15 @@ function GameCard({ game, currency = 'USD', onEdit, onDelete, onRefreshMarket, i
               {game.acquisition_source}
             </div>
           )}
-          {game.posted_online === 1 && (
+          {isSold ? (
+            <div className="badge badge-sold" style={{ marginTop: '0.5rem', marginLeft: '0.5rem' }}>
+              Sold
+            </div>
+          ) : game.posted_online === 1 ? (
             <div className="badge badge-posted" style={{ marginTop: '0.5rem', marginLeft: '0.5rem' }}>
               Posted Online
             </div>
-          )}
+          ) : null}
         </div>
       </div>
 
