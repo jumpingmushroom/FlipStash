@@ -20,23 +20,32 @@ export default function PriceSelectionModal({ results, gamePlatform, onSelect, o
     // Normalize the game platform for comparison (lowercase, remove special chars)
     const normalizedGamePlatform = gamePlatform.toLowerCase().replace(/[^a-z0-9\s]/g, '');
 
+    // Define brand names that shouldn't be used alone for matching
+    const brandNames = ['nintendo', 'playstation', 'sony', 'microsoft', 'xbox', 'sega'];
+
+    // Extract platform-specific identifier (not just brand name)
+    // e.g., "Nintendo Wii (PAL)" -> focus on "wii", not "nintendo"
+    const gamePlatformWords = normalizedGamePlatform
+      .split(/\s+/)
+      .filter(w => w.length > 1 && !brandNames.includes(w));
+
+    // If no specific platform words found, fall back to all words
+    const keywordsToMatch = gamePlatformWords.length > 0
+      ? gamePlatformWords
+      : normalizedGamePlatform.split(/\s+/).filter(w => w.length > 2);
+
     return resultsList.filter(result => {
       if (!result.platform) return true; // Keep results without platform info
 
       const normalizedResultPlatform = result.platform.toLowerCase().replace(/[^a-z0-9\s]/g, '');
 
-      // Check if platforms match (result platform should contain game platform keywords)
-      // e.g., "Nintendo DS" should match "PAL Nintendo DS", "Nintendo DS", etc.
-      // but not "Wii" or "PlayStation"
-      const gamePlatformWords = normalizedGamePlatform.split(/\s+/).filter(w => w.length > 2);
-      const resultPlatformWords = normalizedResultPlatform.split(/\s+/).filter(w => w.length > 2);
-
-      // Check if major platform keywords match
-      return gamePlatformWords.some(gameWord =>
-        resultPlatformWords.some(resultWord =>
-          resultWord.includes(gameWord) || gameWord.includes(resultWord)
-        )
-      );
+      // Check if the platform-specific keywords match
+      // e.g., "Wii" should match "PAL Wii", "Wii", etc. but NOT "Wii U" or "DS"
+      return keywordsToMatch.every(gameKeyword => {
+        // Check if this keyword appears as a whole word in result platform
+        const regex = new RegExp(`\\b${gameKeyword}\\b`, 'i');
+        return regex.test(normalizedResultPlatform);
+      });
     });
   };
 
