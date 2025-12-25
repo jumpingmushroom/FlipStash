@@ -428,7 +428,7 @@ function HomePage({ games, currency, onEdit, onDelete, onRefreshMarket, onGamesU
               <div className="game-list-header-condition">Condition</div>
               <div className="game-list-header-value">Purchase</div>
               <div className="game-list-header-value">Market</div>
-              <div className="game-list-header-badges">Status</div>
+              <div className="game-list-header-badges">Badges</div>
               <div className="game-list-header-actions">Actions</div>
             </div>
           )}
