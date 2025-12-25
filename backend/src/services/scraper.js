@@ -173,11 +173,49 @@ function mapConditionToPriceCharting(condition) {
 /**
  * Parse search results from PriceCharting search page
  * @param {Object} page - Puppeteer page object already on search results
+ * @param {string} condition - Game condition to extract the matching price column
  * @returns {Array} - Array of search results with name, platform, url, and preview price
  */
-async function parsePriceChartingSearchResults(page) {
-  return await page.evaluate(() => {
-    const rows = document.querySelectorAll('table.table.table-striped tbody tr, table#games_table tbody tr');
+async function parsePriceChartingSearchResults(page, condition = 'CIB (Complete in Box)') {
+  // Map condition to PriceCharting column header
+  const conditionMap = {
+    'Sealed': 'New',
+    'CIB (Complete in Box)': 'Complete',
+    'Loose': 'Loose',
+    'Box Only': 'Box Only',
+    'Manual Only': 'Manual Only'
+  };
+  const targetCondition = conditionMap[condition] || 'Complete';
+
+  return await page.evaluate((targetCondition) => {
+    const table = document.querySelector('table.table.table-striped, table#games_table');
+    if (!table) return [];
+
+    // Find which column index corresponds to the target condition
+    const headerRow = table.querySelector('thead tr');
+    const headers = headerRow ? Array.from(headerRow.querySelectorAll('th, td')) : [];
+
+    let priceColumnIndex = -1;
+    for (let i = 0; i < headers.length; i++) {
+      const headerText = headers[i].textContent.trim();
+      if (headerText.includes(targetCondition)) {
+        priceColumnIndex = i;
+        break;
+      }
+    }
+
+    // If we couldn't find the specific condition, try to find any price column
+    if (priceColumnIndex === -1) {
+      for (let i = 2; i < headers.length; i++) {
+        const headerText = headers[i].textContent.trim().toLowerCase();
+        if (headerText.includes('price') || headerText.includes('loose') || headerText.includes('complete')) {
+          priceColumnIndex = i;
+          break;
+        }
+      }
+    }
+
+    const rows = table.querySelectorAll('tbody tr');
     const results = [];
 
     for (const row of rows) {
@@ -199,18 +237,17 @@ async function parsePriceChartingSearchResults(page) {
       // Extract the platform/set from the Set column
       const platform = setCell.textContent.trim();
 
-      // Try to get a preview price (CIB price is usually in column 3 or 4)
+      // Get the price from the matched condition column
       let previewPrice = null;
-      for (let i = 2; i < cells.length; i++) {
-        const cellText = cells[i].textContent.trim();
+      if (priceColumnIndex !== -1 && cells[priceColumnIndex]) {
+        const cellText = cells[priceColumnIndex].textContent.trim();
         const priceMatch = cellText.match(/\$([0-9,]+\.?[0-9]*)/);
         if (priceMatch) {
           previewPrice = parseFloat(priceMatch[1].replace(/,/g, ''));
-          break;
         }
       }
 
-      // Format as "Game Title (Platform)"
+      // Format as "Game Title (Platform)" - only platform in parentheses
       const displayName = platform ? `${gameTitle} (${platform})` : gameTitle;
 
       results.push({
@@ -222,7 +259,7 @@ async function parsePriceChartingSearchResults(page) {
     }
 
     return results;
-  });
+  }, targetCondition);
 }
 
 /**
@@ -392,7 +429,7 @@ async function scrapePriceChartingGeneralSearch(gameName, platform, condition = 
       // If returnMultipleResults is true, parse and return all results
       if (returnMultipleResults) {
         console.log('Returning multiple search results for user selection');
-        const results = await parsePriceChartingSearchResults(page);
+        const results = await parsePriceChartingSearchResults(page, condition);
         await browser.close();
         return results;
       }
@@ -646,7 +683,7 @@ async function scrapePriceCharting(gameName, platform, condition = 'CIB (Complet
     // If we landed on search results and returnMultipleResults is true, parse them
     if (isSearchResultsPage && returnMultipleResults) {
       console.log('Landed on search results page, returning multiple results');
-      const results = await parsePriceChartingSearchResults(page);
+      const results = await parsePriceChartingSearchResults(page, condition);
       await browser.close();
       return results;
     }
