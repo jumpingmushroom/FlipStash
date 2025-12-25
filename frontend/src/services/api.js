@@ -25,6 +25,7 @@ export const gamesApi = {
   },
   refreshMarketValue: (id) => api.post(`/games/${id}/refresh-market-value`),
   refreshMarketValueFromUrl: (id, url) => api.post(`/games/${id}/refresh-market-value-from-url`, { url }),
+  savePriceSources: (id, pricechartingUrl, finnUrl) => api.post(`/games/${id}/price-sources`, { pricechartingUrl, finnUrl }),
   refreshMarketValueSSE: (id, onProgress) => {
     // Use fetch API for SSE instead of axios
     return fetch(`${API_BASE_URL}/api/games/${id}/refresh-market-value-sse`, {

@@ -120,6 +120,17 @@ try {
     console.log('Migrating database: Adding igdb_url column');
     db.exec(`ALTER TABLE games ADD COLUMN igdb_url TEXT`);
   }
+
+  // Migration: Add price source URL columns
+  if (!columns.includes('pricecharting_url')) {
+    console.log('Migrating database: Adding pricecharting_url column');
+    db.exec(`ALTER TABLE games ADD COLUMN pricecharting_url TEXT`);
+  }
+
+  if (!columns.includes('finn_url')) {
+    console.log('Migrating database: Adding finn_url column');
+    db.exec(`ALTER TABLE games ADD COLUMN finn_url TEXT`);
+  }
 } catch (error) {
   console.error('Migration error:', error.message);
 }
@@ -161,8 +172,9 @@ export const statements = {
       igdb_id, igdb_cover_url, igdb_release_date,
       purchase_value_currency, market_value_currency, selling_value_currency, sold_value_currency,
       posted_online, region, acquisition_source,
-      igdb_slug, igdb_summary, igdb_genres, igdb_rating, igdb_url
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      igdb_slug, igdb_summary, igdb_genres, igdb_rating, igdb_url,
+      pricecharting_url, finn_url
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `),
 
   updateGame: db.prepare(`
@@ -174,6 +186,7 @@ export const statements = {
       purchase_value_currency = ?, market_value_currency = ?, selling_value_currency = ?, sold_value_currency = ?,
       posted_online = ?, region = ?, acquisition_source = ?,
       igdb_slug = ?, igdb_summary = ?, igdb_genres = ?, igdb_rating = ?, igdb_url = ?,
+      pricecharting_url = ?, finn_url = ?,
       updated_at = CURRENT_TIMESTAMP
     WHERE id = ?
   `),
@@ -183,6 +196,13 @@ export const statements = {
       market_value = ?, selling_value = ?,
       market_value_currency = ?, selling_value_currency = ?,
       last_refresh_at = CURRENT_TIMESTAMP,
+      updated_at = CURRENT_TIMESTAMP
+    WHERE id = ?
+  `),
+
+  updatePriceUrls: db.prepare(`
+    UPDATE games SET
+      pricecharting_url = ?, finn_url = ?,
       updated_at = CURRENT_TIMESTAMP
     WHERE id = ?
   `),

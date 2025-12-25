@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { gamesApi } from '../services/api';
 import { convertCurrency, formatCurrency } from '../services/currency';
 import PriceChart from '../components/PriceChart';
+import PriceSelectionModal from '../components/PriceSelectionModal';
 import './GameDetailPage.css';
 
 function GameDetailPage() {
@@ -152,16 +153,16 @@ function GameDetailPage() {
     }
   };
 
-  const handleSelectResult = async (url) => {
+  const handleSelectPriceSources = async (pricechartingUrl, finnUrl) => {
     setMultipleResults(null);
     setIsRefreshing(true);
 
     try {
-      await gamesApi.refreshMarketValueFromUrl(id, url);
+      await gamesApi.savePriceSources(id, pricechartingUrl, finnUrl);
       loadGame();
-      alert('Market value updated successfully!');
+      alert('Price sources saved and market value updated successfully!');
     } catch (err) {
-      alert('Failed to update market value from selected result');
+      alert('Failed to save price sources');
       console.error(err);
     } finally {
       setIsRefreshing(false);
@@ -586,41 +587,11 @@ function GameDetailPage() {
 
       {/* Multiple Results Selection Modal */}
       {multipleResults && (
-        <div className="modal-overlay">
-          <div className="modal-content multiple-results-modal">
-            <h2>Multiple Results Found</h2>
-            <p>PriceCharting returned multiple results. Please select the correct game:</p>
-
-            <div className="results-list">
-              {multipleResults.results.map((result, index) => (
-                <div
-                  key={index}
-                  className="result-item-selectable"
-                  onClick={() => handleSelectResult(result.url)}
-                >
-                  <div className="result-info">
-                    <div className="result-name">{result.name}</div>
-                    <div className="result-platform">{result.platform}</div>
-                  </div>
-                  {result.previewPrice && (
-                    <div className="result-price">
-                      ${result.previewPrice.toFixed(2)}
-                    </div>
-                  )}
-                  <div className="result-arrow">→</div>
-                </div>
-              ))}
-            </div>
-
-            <button
-              onClick={() => setMultipleResults(null)}
-              className="btn btn-secondary"
-              style={{ marginTop: '1rem' }}
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
+        <PriceSelectionModal
+          results={multipleResults.results}
+          onSelect={handleSelectPriceSources}
+          onClose={() => setMultipleResults(null)}
+        />
       )}
     </div>
   );
