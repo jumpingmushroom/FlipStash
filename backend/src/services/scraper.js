@@ -786,6 +786,49 @@ async function scrapePriceCharting(gameName, platform, condition = 'CIB (Complet
       return null;
     }, targetCondition);
 
+    // If returnMultipleResults is true, return as an array with single result
+    if (returnMultipleResults) {
+      const currentUrl = page.url();
+
+      // Extract game name and platform from the page if possible
+      const pageInfo = await page.evaluate(() => {
+        // Try to get the game title from the page
+        const titleEl = document.querySelector('h1, .title, [class*="product-title"]');
+        const gameName = titleEl ? titleEl.textContent.trim() : '';
+
+        // Try to get the platform from breadcrumbs or page structure
+        const breadcrumbs = document.querySelectorAll('.breadcrumb a, nav a');
+        let platform = '';
+        for (const crumb of breadcrumbs) {
+          const text = crumb.textContent.trim();
+          if (text && !text.toLowerCase().includes('home') && !text.toLowerCase().includes('games')) {
+            platform = text;
+            break;
+          }
+        }
+
+        return { gameName, platform };
+      });
+
+      await browser.close();
+
+      if (price !== null) {
+        const displayName = pageInfo.platform
+          ? `${pageInfo.gameName || gameName} (${pageInfo.platform})`
+          : (pageInfo.gameName || gameName);
+
+        return [{
+          name: displayName,
+          platform: pageInfo.platform || platform,
+          url: currentUrl,
+          previewPrice: price
+        }];
+      } else {
+        // No price found, return empty array
+        return [];
+      }
+    }
+
     return price;
   } catch (error) {
     console.error('PriceCharting scraping error:', error.message);
