@@ -116,7 +116,8 @@ export async function createGame(req, res) {
       igdb_id, igdb_cover_url, igdb_release_date,
       purchase_value_currency, market_value_currency, selling_value_currency, sold_value_currency,
       posted_online, region, acquisition_source,
-      igdb_slug, igdb_summary, igdb_genres, igdb_rating, igdb_url
+      igdb_slug, igdb_summary, igdb_genres, igdb_rating, igdb_url,
+      pricecharting_url, finn_url
     } = req.body;
 
     if (!name || !platform) {
@@ -147,7 +148,9 @@ export async function createGame(req, res) {
       igdb_summary || null,
       igdb_genres || null,
       igdb_rating || null,
-      igdb_url || null
+      igdb_url || null,
+      pricecharting_url || null,
+      finn_url || null
     );
 
     const newGame = statements.getGameById.get(result.lastInsertRowid);
@@ -175,7 +178,8 @@ export async function updateGame(req, res) {
       igdb_id, igdb_cover_url, igdb_release_date,
       purchase_value_currency, market_value_currency, selling_value_currency, sold_value_currency,
       posted_online, region, acquisition_source,
-      igdb_slug, igdb_summary, igdb_genres, igdb_rating, igdb_url
+      igdb_slug, igdb_summary, igdb_genres, igdb_rating, igdb_url,
+      pricecharting_url, finn_url
     } = req.body;
 
     if (!name || !platform) {
@@ -213,6 +217,8 @@ export async function updateGame(req, res) {
       igdb_genres || null,
       igdb_rating || null,
       igdb_url || null,
+      pricecharting_url || null,
+      finn_url || null,
       req.params.id
     );
 
@@ -273,44 +279,128 @@ export async function refreshMarketValue(req, res) {
       return res.status(404).json({ error: 'Game not found' });
     }
 
-    // Fetch new market value with condition and region
-    const marketData = await getMarketValue(game.name, game.platform, game.condition, game.region);
+    // Check if we have stored URLs to use
+    if (game.pricecharting_url || game.finn_url) {
+      // Use stored URLs to fetch prices
+      let marketValue = null;
+      let currency = 'USD';
+      let sources = {
+        pricecharting: null,
+        finnno: null
+      };
 
-    // Only update if we got valid data, otherwise leave as is
-    if (marketData.market_value !== null) {
-      statements.updateMarketValue.run(
-        marketData.market_value,
-        marketData.selling_value,
-        marketData.currency,
-        marketData.currency,
-        req.params.id
-      );
-
-      // Determine the source for price history
-      let source = 'manual';
-      const { pricecharting, finnno } = marketData.sources;
-
-      if (finnno !== null) {
-        source = 'finn';
-      } else if (pricecharting !== null) {
-        source = 'pricecharting';
+      // Fetch from stored URLs in parallel
+      const fetchPromises = [];
+      if (game.pricecharting_url) {
+        fetchPromises.push(
+          getPriceFromUrl(game.pricecharting_url, game.condition).then(data => ({
+            source: 'pricecharting',
+            data
+          }))
+        );
+      }
+      if (game.finn_url) {
+        fetchPromises.push(
+          getPriceFromUrl(game.finn_url, game.condition).then(data => ({
+            source: 'finnno',
+            data
+          }))
+        );
       }
 
-      // Record price history
-      recordPriceHistory(req.params.id, marketData.market_value, source);
+      const results = await Promise.all(fetchPromises);
 
-      const updatedGame = statements.getGameById.get(req.params.id);
-      res.json({
-        game: updatedGame,
-        sources: marketData.sources
-      });
+      // Process results
+      for (const result of results) {
+        if (result.source === 'pricecharting' && result.data.market_value !== null) {
+          sources.pricecharting = result.data.market_value;
+        } else if (result.source === 'finnno' && result.data.market_value !== null) {
+          sources.finnno = result.data.market_value;
+        }
+      }
+
+      // Prefer Finn.no if available
+      if (sources.finnno !== null) {
+        marketValue = sources.finnno;
+        currency = 'NOK';
+      } else if (sources.pricecharting !== null) {
+        marketValue = sources.pricecharting;
+        currency = 'USD';
+      }
+
+      if (marketValue !== null) {
+        const sellingValue = Math.round(marketValue * 1.10 * 100) / 100;
+
+        statements.updateMarketValue.run(
+          marketValue,
+          sellingValue,
+          currency,
+          currency,
+          req.params.id
+        );
+
+        // Determine the source for price history
+        let historySource = 'manual';
+        if (sources.finnno !== null) {
+          historySource = 'finn';
+        } else if (sources.pricecharting !== null) {
+          historySource = 'pricecharting';
+        }
+
+        recordPriceHistory(req.params.id, marketValue, historySource);
+
+        const updatedGame = statements.getGameById.get(req.params.id);
+        res.json({
+          game: updatedGame,
+          sources
+        });
+      } else {
+        res.json({
+          game,
+          sources,
+          message: 'No market data found'
+        });
+      }
     } else {
-      // Return current game data with indication that no new data was found
-      res.json({
-        game,
-        sources: marketData.sources,
-        message: 'No market data found'
-      });
+      // No stored URLs, fetch new market value with condition and region
+      const marketData = await getMarketValue(game.name, game.platform, game.condition, game.region);
+
+      // Only update if we got valid data, otherwise leave as is
+      if (marketData.market_value !== null) {
+        statements.updateMarketValue.run(
+          marketData.market_value,
+          marketData.selling_value,
+          marketData.currency,
+          marketData.currency,
+          req.params.id
+        );
+
+        // Determine the source for price history
+        let source = 'manual';
+        const { pricecharting, finnno } = marketData.sources;
+
+        if (finnno !== null) {
+          source = 'finn';
+        } else if (pricecharting !== null) {
+          source = 'pricecharting';
+        }
+
+        // Record price history
+        recordPriceHistory(req.params.id, marketData.market_value, source);
+
+        const updatedGame = statements.getGameById.get(req.params.id);
+        res.json({
+          game: updatedGame,
+          sources: marketData.sources
+        });
+      } else {
+        // Return current game data with indication that no new data was found
+        res.json({
+          game,
+          sources: marketData.sources,
+          message: 'No market data found'
+        });
+      }
     }
   } catch (error) {
     console.error('Error refreshing market value:', error);
@@ -409,18 +499,79 @@ export async function refreshMarketValueSSE(req, res) {
       return;
     }
 
-    // Fetch new market value - request multiple results if available
-    const marketData = await getMarketValue(game.name, game.platform, game.condition, game.region, true);
+    // Check if we have stored URLs to use
+    let marketData;
 
-    // Check if we got multiple results for user selection
-    if (marketData.multipleResults) {
-      sendUpdate({
-        type: 'multipleResults',
-        gameId: id,
-        results: marketData.multipleResults
-      });
-      res.end();
-      return;
+    if (game.pricecharting_url || game.finn_url) {
+      // Use stored URLs to fetch prices
+      let marketValue = null;
+      let currency = 'USD';
+      let sources = {
+        pricecharting: null,
+        finnno: null
+      };
+
+      // Fetch from stored URLs in parallel
+      const fetchPromises = [];
+      if (game.pricecharting_url) {
+        fetchPromises.push(
+          getPriceFromUrl(game.pricecharting_url, game.condition).then(data => ({
+            source: 'pricecharting',
+            data
+          }))
+        );
+      }
+      if (game.finn_url) {
+        fetchPromises.push(
+          getPriceFromUrl(game.finn_url, game.condition).then(data => ({
+            source: 'finnno',
+            data
+          }))
+        );
+      }
+
+      const results = await Promise.all(fetchPromises);
+
+      // Process results
+      for (const result of results) {
+        if (result.source === 'pricecharting' && result.data.market_value !== null) {
+          sources.pricecharting = result.data.market_value;
+        } else if (result.source === 'finnno' && result.data.market_value !== null) {
+          sources.finnno = result.data.market_value;
+        }
+      }
+
+      // Prefer Finn.no if available
+      if (sources.finnno !== null) {
+        marketValue = sources.finnno;
+        currency = 'NOK';
+      } else if (sources.pricecharting !== null) {
+        marketValue = sources.pricecharting;
+        currency = 'USD';
+      }
+
+      const sellingValue = marketValue !== null ? Math.round(marketValue * 1.10 * 100) / 100 : null;
+
+      marketData = {
+        market_value: marketValue,
+        selling_value: sellingValue,
+        currency: currency,
+        sources: sources
+      };
+    } else {
+      // No stored URLs, fetch new market value - request multiple results if available
+      marketData = await getMarketValue(game.name, game.platform, game.condition, game.region, true);
+
+      // Check if we got multiple results for user selection
+      if (marketData.multipleResults) {
+        sendUpdate({
+          type: 'multipleResults',
+          gameId: id,
+          results: marketData.multipleResults
+        });
+        res.end();
+        return;
+      }
     }
 
     // Process result
@@ -1041,8 +1192,124 @@ export async function batchRefreshMarketValues(req, res) {
 }
 
 /**
+ * Save selected price source URLs and fetch prices from them
+ * Used when user selects from multiple search results
+ */
+export async function savePriceSources(req, res) {
+  try {
+    const game = statements.getGameById.get(req.params.id);
+    if (!game) {
+      return res.status(404).json({ error: 'Game not found' });
+    }
+
+    const { pricechartingUrl, finnUrl } = req.body;
+
+    // At least one URL must be provided
+    if (!pricechartingUrl && !finnUrl) {
+      return res.status(400).json({ error: 'At least one price source URL is required' });
+    }
+
+    // Save the URLs to the database
+    statements.updatePriceUrls.run(
+      pricechartingUrl || null,
+      finnUrl || null,
+      req.params.id
+    );
+
+    // Fetch prices from the provided URLs
+    let marketValue = null;
+    let currency = 'USD';
+    let sources = {
+      pricecharting: null,
+      finnno: null
+    };
+
+    // Fetch from both URLs in parallel
+    const fetchPromises = [];
+    if (pricechartingUrl) {
+      fetchPromises.push(
+        getPriceFromUrl(pricechartingUrl, game.condition).then(data => ({
+          source: 'pricecharting',
+          data
+        }))
+      );
+    }
+    if (finnUrl) {
+      fetchPromises.push(
+        getPriceFromUrl(finnUrl, game.condition).then(data => ({
+          source: 'finnno',
+          data
+        }))
+      );
+    }
+
+    const results = await Promise.all(fetchPromises);
+
+    // Process results and determine which price to use
+    for (const result of results) {
+      if (result.source === 'pricecharting' && result.data.market_value !== null) {
+        sources.pricecharting = result.data.market_value;
+      } else if (result.source === 'finnno' && result.data.market_value !== null) {
+        sources.finnno = result.data.market_value;
+      }
+    }
+
+    // Prefer Finn.no (NOK) if available, otherwise use PriceCharting (USD)
+    if (sources.finnno !== null) {
+      marketValue = sources.finnno;
+      currency = 'NOK';
+    } else if (sources.pricecharting !== null) {
+      marketValue = sources.pricecharting;
+      currency = 'USD';
+    }
+
+    // Update market value if we got data
+    if (marketValue !== null) {
+      const sellingValue = Math.round(marketValue * 1.10 * 100) / 100;
+
+      statements.updateMarketValue.run(
+        marketValue,
+        sellingValue,
+        currency,
+        currency,
+        req.params.id
+      );
+
+      // Determine the source for price history
+      let historySource = 'manual';
+      if (sources.finnno !== null) {
+        historySource = 'finn';
+      } else if (sources.pricecharting !== null) {
+        historySource = 'pricecharting';
+      }
+
+      // Record price history
+      recordPriceHistory(req.params.id, marketValue, historySource);
+
+      const updatedGame = statements.getGameById.get(req.params.id);
+      res.json({
+        game: updatedGame,
+        sources
+      });
+    } else {
+      // Even if no price was found, the URLs were saved
+      const updatedGame = statements.getGameById.get(req.params.id);
+      res.json({
+        game: updatedGame,
+        sources,
+        message: 'Price source URLs saved, but no prices were found'
+      });
+    }
+  } catch (error) {
+    console.error('Error saving price sources:', error);
+    res.status(500).json({ error: 'Failed to save price sources' });
+  }
+}
+
+/**
  * Refresh market value from a specific PriceCharting URL
  * Used when user selects from multiple search results
+ * @deprecated Use savePriceSources instead
  */
 export async function refreshMarketValueFromUrl(req, res) {
   try {

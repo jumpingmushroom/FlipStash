@@ -758,12 +758,99 @@ async function scrapePriceCharting(gameName, platform, condition = 'CIB (Complet
 }
 
 /**
+ * Parse search results from Finn.no search page
+ * @param {Object} page - Puppeteer page object already on search results
+ * @returns {Array} - Array of search results with title, price, and url
+ */
+async function parseFinnNoSearchResults(page) {
+  return await page.evaluate(() => {
+    const results = [];
+
+    // Try to find ad containers
+    const selectors = [
+      'article[data-testid*="ad"]',
+      'article[class*="Ad"]',
+      'div[class*="Result"]',
+      '.ads__unit'
+    ];
+
+    let adElements = [];
+    for (const selector of selectors) {
+      adElements = document.querySelectorAll(selector);
+      if (adElements.length > 0) break;
+    }
+
+    for (const ad of adElements) {
+      try {
+        // Get title
+        let title = null;
+        const titleSelectors = [
+          'h2', 'h3',
+          '[class*="title"]',
+          '[class*="Title"]',
+          'a[class*="link"]'
+        ];
+
+        for (const selector of titleSelectors) {
+          const titleEl = ad.querySelector(selector);
+          if (titleEl && titleEl.textContent.trim()) {
+            title = titleEl.textContent.trim();
+            break;
+          }
+        }
+
+        // Get price
+        let price = null;
+        const priceSelectors = [
+          '[class*="price"]',
+          '[class*="Price"]',
+          '[data-testid*="price"]'
+        ];
+
+        for (const selector of priceSelectors) {
+          const priceEl = ad.querySelector(selector);
+          if (priceEl) {
+            const text = priceEl.textContent.trim();
+            const match = text.match(/([0-9\s]+)\s*kr/i);
+            if (match) {
+              price = parseFloat(match[1].replace(/\s/g, ''));
+              break;
+            }
+          }
+        }
+
+        // Get URL
+        let url = null;
+        const linkEl = ad.querySelector('a[href]');
+        if (linkEl) {
+          url = linkEl.href;
+        }
+
+        // Only add if we have at least title and price
+        if (title && price && price > 0 && price < 100000) {
+          results.push({
+            name: title,
+            price: price,
+            url: url
+          });
+        }
+      } catch (error) {
+        console.log('Error parsing Finn.no ad:', error.message);
+      }
+    }
+
+    return results;
+  });
+}
+
+/**
  * Scrape price from Finn.no (Norwegian marketplace)
  * @param {string} gameName - Name of the game
  * @param {string} platform - Gaming platform
- * @returns {number|null} - Average price in NOK or null if not found
+ * @param {boolean} returnMultipleResults - If true, return array of search results instead of average
+ * @returns {number|null|Array} - Average price in NOK, null if not found, or array of results if returnMultipleResults is true
  */
-async function scrapeFinnNo(gameName, platform) {
+async function scrapeFinnNo(gameName, platform, returnMultipleResults = false) {
   let browser;
   try {
     browser = await createBrowser();
@@ -791,6 +878,14 @@ async function scrapeFinnNo(gameName, platform) {
     });
 
     await randomDelay(2000, 3000);
+
+    // If returnMultipleResults is true, parse and return all search results
+    if (returnMultipleResults) {
+      console.log('Returning multiple Finn.no search results for user selection');
+      const results = await parseFinnNoSearchResults(page);
+      await browser.close();
+      return results;
+    }
 
     // Extract prices from search results
     const prices = await page.evaluate(() => {
@@ -853,31 +948,32 @@ async function scrapeFinnNo(gameName, platform) {
  * @param {string} platform - Gaming platform
  * @param {string} condition - Game condition (Sealed, CIB, Loose, Box Only, Manual Only)
  * @param {string} region - Game region (PAL, NTSC, NTSC-J, None, Other)
- * @param {boolean} returnMultipleResults - If true, return all PriceCharting search results for user selection
- * @returns {Object} - Object with market_value, selling_value, and currency, or multipleResults array
+ * @param {boolean} returnMultipleResults - If true, return search results from both sources for user selection
+ * @returns {Object} - Object with market_value, selling_value, and currency, or multipleResults object
  */
 export async function getMarketValue(gameName, platform, condition = 'CIB (Complete in Box)', region = 'PAL', returnMultipleResults = false) {
   console.log(`Fetching market value for: ${gameName} (${platform}) - Condition: ${condition}, Region: ${region}`);
 
-  // If returnMultipleResults is true, only query PriceCharting for search results
+  // If returnMultipleResults is true, query both sources for search results
   if (returnMultipleResults) {
-    const priceChartingResults = await scrapePriceCharting(gameName, platform, condition, region, true);
+    const [priceChartingResults, finnNoResults] = await Promise.all([
+      scrapePriceCharting(gameName, platform, condition, region, true),
+      scrapeFinnNo(gameName, platform, true)
+    ]);
 
-    // If we got an array of results, return them for user selection
-    if (Array.isArray(priceChartingResults)) {
-      return {
-        multipleResults: priceChartingResults
-      };
-    }
-
-    // If we got a single price despite requesting multiple results, return it normally
-    // This happens if the direct URL worked
+    // Return both result sets for user selection
+    return {
+      multipleResults: {
+        pricecharting: Array.isArray(priceChartingResults) ? priceChartingResults : [],
+        finnno: Array.isArray(finnNoResults) ? finnNoResults : []
+      }
+    };
   }
 
   // Run both scrapers in parallel
   const [priceChartingPrice, finnNoPrice] = await Promise.all([
     scrapePriceCharting(gameName, platform, condition, region, false),
-    scrapeFinnNo(gameName, platform)
+    scrapeFinnNo(gameName, platform, false)
   ]);
 
   console.log('PriceCharting price (USD):', priceChartingPrice);
@@ -925,25 +1021,114 @@ export async function getMarketValue(gameName, platform, condition = 'CIB (Compl
 }
 
 /**
+ * Scrape price from a specific Finn.no URL
+ * @param {string} url - Direct URL to Finn.no ad
+ * @returns {number|null} - Price in NOK or null if not found
+ */
+async function scrapeFinnNoFromUrl(url) {
+  let browser;
+  try {
+    browser = await createBrowser();
+    const page = await browser.newPage();
+
+    await page.setViewport({ width: 1920, height: 1080 });
+    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+
+    await page.setJavaScriptEnabled(true);
+    await page.setExtraHTTPHeaders({
+      'Accept-Language': 'nb-NO,nb;q=0.9,no;q=0.8,nn;q=0.7,en-US;q=0.6,en;q=0.5',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
+    });
+
+    console.log(`Scraping Finn.no from URL: ${url}`);
+
+    const response = await page.goto(url, {
+      waitUntil: 'networkidle2',
+      timeout: 30000
+    });
+
+    if (!response || response.status() === 404) {
+      console.log('Finn.no URL returned 404');
+      return null;
+    }
+
+    await randomDelay(1000, 2000);
+
+    const price = await page.evaluate(() => {
+      const priceSelectors = [
+        '[class*="price"]',
+        '[class*="Price"]',
+        '[data-testid*="price"]'
+      ];
+
+      for (const selector of priceSelectors) {
+        const priceEl = document.querySelector(selector);
+        if (priceEl) {
+          const text = priceEl.textContent.trim();
+          const match = text.match(/([0-9\s]+)\s*kr/i);
+          if (match) {
+            return parseFloat(match[1].replace(/\s/g, ''));
+          }
+        }
+      }
+
+      return null;
+    });
+
+    return price;
+  } catch (error) {
+    console.error('Finn.no URL scraping error:', error.message);
+    return null;
+  } finally {
+    if (browser) {
+      await browser.close();
+    }
+  }
+}
+
+/**
  * Export function to scrape from a specific PriceCharting URL
  * Used when user selects a specific result from multiple search results
  */
 export async function getPriceFromUrl(url, condition = 'CIB (Complete in Box)') {
-  const price = await scrapePriceChartingFromUrl(url, condition);
+  // Determine which source the URL is from
+  if (url.includes('finn.no')) {
+    const price = await scrapeFinnNoFromUrl(url);
 
-  if (price === null) {
+    if (price === null) {
+      return {
+        market_value: null,
+        selling_value: null,
+        currency: 'NOK'
+      };
+    }
+
+    const sellingValue = Math.round(price * 1.10 * 100) / 100;
+
     return {
-      market_value: null,
-      selling_value: null,
+      market_value: Math.round(price * 100) / 100,
+      selling_value: sellingValue,
+      currency: 'NOK'
+    };
+  } else if (url.includes('pricecharting.com')) {
+    const price = await scrapePriceChartingFromUrl(url, condition);
+
+    if (price === null) {
+      return {
+        market_value: null,
+        selling_value: null,
+        currency: 'USD'
+      };
+    }
+
+    const sellingValue = Math.round(price * 1.10 * 100) / 100;
+
+    return {
+      market_value: Math.round(price * 100) / 100,
+      selling_value: sellingValue,
       currency: 'USD'
     };
+  } else {
+    throw new Error('Unknown price source URL');
   }
-
-  const sellingValue = Math.round(price * 1.10 * 100) / 100;
-
-  return {
-    market_value: Math.round(price * 100) / 100,
-    selling_value: sellingValue,
-    currency: 'USD'
-  };
 }
