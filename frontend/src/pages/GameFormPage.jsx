@@ -139,7 +139,6 @@ function GameFormPage({ currency = 'USD', onSave }) {
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isFetchingMarketValue, setIsFetchingMarketValue] = useState(false);
   const [acquisitionSources, setAcquisitionSources] = useState([]);
 
   useEffect(() => {
@@ -286,19 +285,9 @@ function GameFormPage({ currency = 'USD', onSave }) {
         await gamesApi.update(id, dataToSubmit);
       } else {
         // Create new game
-        const response = await gamesApi.create(dataToSubmit);
-        const newGameId = response.data.id;
-
-        // Auto-fetch market value for new games
-        setIsFetchingMarketValue(true);
-        try {
-          await gamesApi.refreshMarketValue(newGameId);
-        } catch (marketErr) {
-          // Don't fail the whole operation if market value fetch fails
-          console.warn('Failed to fetch initial market value:', marketErr);
-        } finally {
-          setIsFetchingMarketValue(false);
-        }
+        await gamesApi.create(dataToSubmit);
+        // Note: Market value can be set manually or by clicking "Refresh Market Value"
+        // on the game detail page, which will prompt to select the correct price source
       }
 
       if (onSave) onSave();
@@ -559,11 +548,11 @@ function GameFormPage({ currency = 'USD', onSave }) {
         </div>
 
         <div className="form-actions">
-          <button type="button" onClick={handleCancel} className="btn btn-secondary" disabled={isSubmitting || isFetchingMarketValue}>
+          <button type="button" onClick={handleCancel} className="btn btn-secondary" disabled={isSubmitting}>
             Cancel
           </button>
-          <button type="submit" disabled={isSubmitting || isFetchingMarketValue} className="btn btn-primary">
-            {isFetchingMarketValue ? 'Fetching market value...' : (isSubmitting ? 'Saving...' : (isEditMode ? 'Update Game' : 'Add Game'))}
+          <button type="submit" disabled={isSubmitting} className="btn btn-primary">
+            {isSubmitting ? 'Saving...' : (isEditMode ? 'Update Game' : 'Add Game')}
           </button>
         </div>
       </form>
