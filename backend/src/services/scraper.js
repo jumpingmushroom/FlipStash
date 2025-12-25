@@ -247,11 +247,9 @@ async function parsePriceChartingSearchResults(page, condition = 'CIB (Complete 
         }
       }
 
-      // Format as "Game Title (Platform)" - only platform in parentheses
-      const displayName = platform ? `${gameTitle} (${platform})` : gameTitle;
-
+      // Store game title and platform separately - no parentheses
       results.push({
-        name: displayName,
+        name: gameTitle,
         platform,
         url,
         previewPrice
@@ -825,12 +823,10 @@ async function scrapePriceCharting(gameName, platform, condition = 'CIB (Complet
 
         const finalPlatform = extractedPlatform || platform;
         const finalGameName = extractedGameName || gameName;
-        const displayName = finalPlatform
-          ? `${finalGameName} (${finalPlatform})`
-          : finalGameName;
 
+        // Return game name and platform separately - no parentheses
         return [{
-          name: displayName,
+          name: finalGameName,
           platform: finalPlatform,
           url: currentUrl,
           previewPrice: price
