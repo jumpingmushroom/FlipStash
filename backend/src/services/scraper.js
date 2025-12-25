@@ -187,16 +187,21 @@ async function parsePriceChartingSearchResults(page) {
       const cells = Array.from(row.querySelectorAll('td'));
       if (cells.length < 2) continue;
 
-      const nameCell = cells[0];
-      const name = nameCell.textContent.trim();
+      // Extract the game title from the link text
+      const gameTitle = link.textContent.trim();
       const url = link.href;
 
-      // Try to extract platform from the row text or URL
+      // Try to extract platform from the URL
       let platform = '';
       const urlParts = url.split('/');
       if (urlParts.length >= 5) {
         // URL format: /game/{platform}/{game-name}
-        platform = urlParts[4].replace(/-/g, ' ');
+        const platformSlug = urlParts[4];
+        // Convert platform slug to readable name
+        platform = platformSlug
+          .split('-')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(' ');
       }
 
       // Try to get a preview price (usually in one of the later columns)
@@ -210,8 +215,11 @@ async function parsePriceChartingSearchResults(page) {
         }
       }
 
+      // Format as "Game Title (Platform)"
+      const displayName = platform ? `${gameTitle} (${platform})` : gameTitle;
+
       results.push({
-        name,
+        name: displayName,
         platform,
         url,
         previewPrice
@@ -782,10 +790,11 @@ async function parseFinnNoSearchResults(page) {
 
     for (const ad of adElements) {
       try {
-        // Get title
+        // Get title - prioritize heading tags first, then title classes
         let title = null;
         const titleSelectors = [
-          'h2', 'h3',
+          'h2', 'h3', 'h1',
+          '[class*="heading"]',
           '[class*="title"]',
           '[class*="Title"]',
           'a[class*="link"]'
@@ -828,6 +837,7 @@ async function parseFinnNoSearchResults(page) {
 
         // Only add if we have at least title and price
         if (title && price && price > 0 && price < 100000) {
+          // Finn.no titles are usually already descriptive, so just use them as-is
           results.push({
             name: title,
             price: price,

@@ -57,7 +57,6 @@ export default function PriceSelectionModal({ results, onSelect, onClose }) {
                   >
                     <div className="result-info">
                       <div className="result-name">{result.name}</div>
-                      {result.platform && <div className="result-platform">{result.platform}</div>}
                     </div>
                     {result.previewPrice !== null && result.previewPrice !== undefined && (
                       <div className="result-price">${result.previewPrice.toFixed(2)}</div>
