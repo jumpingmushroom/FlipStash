@@ -245,12 +245,22 @@ function GameDetailPage() {
                 )}
                 {game.platform && (
                   <a
-                    href={`https://www.pricecharting.com/search-products?q=${encodeURIComponent(game.name + ' ' + game.platform)}&type=videogames`}
+                    href={game.pricecharting_url || `https://www.pricecharting.com/search-products?q=${encodeURIComponent(game.name + ' ' + game.platform)}&type=videogames`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="external-link"
                   >
                     💰 View on PriceCharting
+                  </a>
+                )}
+                {game.finn_url && (
+                  <a
+                    href={game.finn_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="external-link"
+                  >
+                    🇳🇴 View on Finn.no
                   </a>
                 )}
               </div>
