@@ -65,6 +65,7 @@
 .result-info {
   flex: 1;
   min-width: 0;
+  overflow: visible;
 }
 
 .result-name {
@@ -73,6 +74,8 @@
   color: #ffffff;
   margin-bottom: 0.25rem;
   word-wrap: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
   line-height: 1.4;
 }
 
