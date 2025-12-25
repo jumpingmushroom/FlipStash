@@ -181,32 +181,27 @@ async function parsePriceChartingSearchResults(page) {
     const results = [];
 
     for (const row of rows) {
-      const link = row.querySelector('a[href*="/game/"]');
-      if (!link) continue;
-
       const cells = Array.from(row.querySelectorAll('td'));
       if (cells.length < 2) continue;
 
-      // Extract the game title from the link text
+      // First column (cells[0]) = Title with game name and variant info
+      // Second column (cells[1]) = Set/Platform
+      const titleCell = cells[0];
+      const setCell = cells[1];
+
+      const link = titleCell.querySelector('a[href*="/game/"]');
+      if (!link) continue;
+
+      // Extract the game title from the link in the Title column
       const gameTitle = link.textContent.trim();
       const url = link.href;
 
-      // Try to extract platform from the URL
-      let platform = '';
-      const urlParts = url.split('/');
-      if (urlParts.length >= 5) {
-        // URL format: /game/{platform}/{game-name}
-        const platformSlug = urlParts[4];
-        // Convert platform slug to readable name
-        platform = platformSlug
-          .split('-')
-          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-          .join(' ');
-      }
+      // Extract the platform/set from the Set column
+      const platform = setCell.textContent.trim();
 
-      // Try to get a preview price (usually in one of the later columns)
+      // Try to get a preview price (CIB price is usually in column 3 or 4)
       let previewPrice = null;
-      for (let i = 1; i < cells.length; i++) {
+      for (let i = 2; i < cells.length; i++) {
         const cellText = cells[i].textContent.trim();
         const priceMatch = cellText.match(/\$([0-9,]+\.?[0-9]*)/);
         if (priceMatch) {
