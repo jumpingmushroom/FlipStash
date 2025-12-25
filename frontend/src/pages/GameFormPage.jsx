@@ -113,6 +113,7 @@ function GameFormPage({ currency = 'USD', onSave }) {
   const [formData, setFormData] = useState({
     name: '',
     platform: '',
+    region: 'PAL',
     purchase_value: '',
     market_value: '',
     selling_value: '',
@@ -129,7 +130,8 @@ function GameFormPage({ currency = 'USD', onSave }) {
     igdb_genres: '',
     igdb_rating: '',
     igdb_url: '',
-    posted_online: false
+    posted_online: false,
+    acquisition_source: ''
   });
 
   const [igdbQuery, setIgdbQuery] = useState('');
@@ -138,8 +140,20 @@ function GameFormPage({ currency = 'USD', onSave }) {
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isFetchingMarketValue, setIsFetchingMarketValue] = useState(false);
+  const [acquisitionSources, setAcquisitionSources] = useState([]);
 
   useEffect(() => {
+    // Fetch acquisition sources for autocomplete
+    const fetchAcquisitionSources = async () => {
+      try {
+        const response = await gamesApi.getAcquisitionSources();
+        setAcquisitionSources(response.data);
+      } catch (err) {
+        console.error('Failed to fetch acquisition sources:', err);
+      }
+    };
+    fetchAcquisitionSources();
+
     if (isEditMode) {
       if (gameFromState) {
         loadGameData(gameFromState);
@@ -164,6 +178,7 @@ function GameFormPage({ currency = 'USD', onSave }) {
     setFormData({
       name: game.name || '',
       platform: game.platform || '',
+      region: game.region || 'PAL',
       purchase_value: game.purchase_value || '',
       market_value: game.market_value || '',
       selling_value: game.selling_value || '',
@@ -180,7 +195,8 @@ function GameFormPage({ currency = 'USD', onSave }) {
       igdb_genres: game.igdb_genres || '',
       igdb_rating: game.igdb_rating || '',
       igdb_url: game.igdb_url || '',
-      posted_online: game.posted_online === 1 || game.posted_online === true
+      posted_online: game.posted_online === 1 || game.posted_online === true,
+      acquisition_source: game.acquisition_source || ''
     });
   };
 
@@ -391,6 +407,22 @@ function GameFormPage({ currency = 'USD', onSave }) {
           </select>
         </div>
 
+        <div className="form-group">
+          <label className="form-label">Region</label>
+          <select
+            name="region"
+            className="form-select"
+            value={formData.region}
+            onChange={handleChange}
+          >
+            <option value="None">None</option>
+            <option value="PAL">PAL</option>
+            <option value="NTSC">NTSC</option>
+            <option value="NTSC-J">NTSC-J (Japan)</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+
         <div className="form-row">
           <div className="form-group">
             <label className="form-label">Purchase Value ({currencySymbol})</label>
@@ -414,6 +446,24 @@ function GameFormPage({ currency = 'USD', onSave }) {
               onChange={handleChange}
             />
           </div>
+        </div>
+
+        <div className="form-group">
+          <label className="form-label">Acquisition Source</label>
+          <input
+            type="text"
+            name="acquisition_source"
+            className="form-input"
+            value={formData.acquisition_source}
+            onChange={handleChange}
+            list="acquisition-sources-list"
+            placeholder="e.g., eBay, GameStop, Garage Sale, Trade, Gift..."
+          />
+          <datalist id="acquisition-sources-list">
+            {acquisitionSources.map((source, index) => (
+              <option key={index} value={source} />
+            ))}
+          </datalist>
         </div>
 
         <div className="form-row">
