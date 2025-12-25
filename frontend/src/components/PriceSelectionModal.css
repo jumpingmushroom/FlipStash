@@ -1,6 +1,6 @@
 .price-selection-modal {
-  max-width: 900px;
-  width: 90vw;
+  max-width: 1100px;
+  width: 95vw;
   max-height: 90vh;
   overflow-y: auto;
 }
@@ -42,13 +42,14 @@
 .result-card {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   padding: 1rem;
   background: rgba(255, 255, 255, 0.05);
   border: 2px solid transparent;
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
+  min-height: 60px;
 }
 
 .result-card:hover {
@@ -71,9 +72,8 @@
   font-weight: 500;
   color: #ffffff;
   margin-bottom: 0.25rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  word-wrap: break-word;
+  line-height: 1.4;
 }
 
 .result-platform {
@@ -87,6 +87,8 @@
   color: #10b981;
   margin-left: 1rem;
   white-space: nowrap;
+  flex-shrink: 0;
+  padding-top: 0.125rem;
 }
 
 .modal-footer {
