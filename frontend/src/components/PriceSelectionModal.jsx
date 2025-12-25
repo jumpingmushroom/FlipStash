@@ -5,15 +5,46 @@ import './PriceSelectionModal.css';
  * Modal for selecting price sources from search results
  * @param {Object} props
  * @param {Object} props.results - Search results with pricecharting and finnno arrays
+ * @param {string} props.gamePlatform - The platform of the game being refreshed
  * @param {Function} props.onSelect - Callback when user confirms selection (pricechartingUrl, finnUrl)
  * @param {Function} props.onClose - Callback when modal is closed
  */
-export default function PriceSelectionModal({ results, onSelect, onClose }) {
+export default function PriceSelectionModal({ results, gamePlatform, onSelect, onClose }) {
   const [selectedPriceCharting, setSelectedPriceCharting] = useState(null);
   const [selectedFinn, setSelectedFinn] = useState(null);
 
-  const hasPriceChartingResults = results.pricecharting && results.pricecharting.length > 0;
-  const hasFinnResults = results.finnno && results.finnno.length > 0;
+  // Filter results by platform if gamePlatform is provided
+  const filterByPlatform = (resultsList) => {
+    if (!gamePlatform || !resultsList) return resultsList;
+
+    // Normalize the game platform for comparison (lowercase, remove special chars)
+    const normalizedGamePlatform = gamePlatform.toLowerCase().replace(/[^a-z0-9\s]/g, '');
+
+    return resultsList.filter(result => {
+      if (!result.platform) return true; // Keep results without platform info
+
+      const normalizedResultPlatform = result.platform.toLowerCase().replace(/[^a-z0-9\s]/g, '');
+
+      // Check if platforms match (result platform should contain game platform keywords)
+      // e.g., "Nintendo DS" should match "PAL Nintendo DS", "Nintendo DS", etc.
+      // but not "Wii" or "PlayStation"
+      const gamePlatformWords = normalizedGamePlatform.split(/\s+/).filter(w => w.length > 2);
+      const resultPlatformWords = normalizedResultPlatform.split(/\s+/).filter(w => w.length > 2);
+
+      // Check if major platform keywords match
+      return gamePlatformWords.some(gameWord =>
+        resultPlatformWords.some(resultWord =>
+          resultWord.includes(gameWord) || gameWord.includes(resultWord)
+        )
+      );
+    });
+  };
+
+  const filteredPriceCharting = filterByPlatform(results.pricecharting);
+  const filteredFinnNo = filterByPlatform(results.finnno);
+
+  const hasPriceChartingResults = filteredPriceCharting && filteredPriceCharting.length > 0;
+  const hasFinnResults = filteredFinnNo && filteredFinnNo.length > 0;
 
   const handleConfirm = () => {
     // At least one selection is required
@@ -49,7 +80,7 @@ export default function PriceSelectionModal({ results, onSelect, onClose }) {
               <p className="no-results">No results found</p>
             ) : (
               <div className="results-list">
-                {results.pricecharting.map((result, index) => (
+                {filteredPriceCharting.map((result, index) => (
                   <div
                     key={index}
                     className={`result-card ${selectedPriceCharting === result.url ? 'selected' : ''}`}
@@ -77,7 +108,7 @@ export default function PriceSelectionModal({ results, onSelect, onClose }) {
               <p className="no-results">No results found</p>
             ) : (
               <div className="results-list">
-                {results.finnno.map((result, index) => (
+                {filteredFinnNo.map((result, index) => (
                   <div
                     key={index}
                     className={`result-card ${selectedFinn === result.url ? 'selected' : ''}`}

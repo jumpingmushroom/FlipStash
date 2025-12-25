@@ -589,6 +589,7 @@ function GameDetailPage() {
       {multipleResults && (
         <PriceSelectionModal
           results={multipleResults.results}
+          gamePlatform={game?.platform}
           onSelect={handleSelectPriceSources}
           onClose={() => setMultipleResults(null)}
         />
