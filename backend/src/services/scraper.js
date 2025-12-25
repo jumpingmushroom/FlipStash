@@ -790,33 +790,41 @@ async function scrapePriceCharting(gameName, platform, condition = 'CIB (Complet
     if (returnMultipleResults) {
       const currentUrl = page.url();
 
-      // Extract game name from the page
-      const pageGameName = await page.evaluate(() => {
-        // Try to get the game title from the page
-        const titleEl = document.querySelector('h1, .title, [class*="product-title"]');
-        return titleEl ? titleEl.textContent.trim() : '';
-      });
-
       await browser.close();
 
       if (price !== null) {
-        // Extract platform from URL - more reliable than page scraping
-        // URL format: /game/{platform-slug}/{game-name}
+        // Extract both platform and game name from URL - more reliable than page scraping
+        // URL format: /game/{platform-slug}/{game-name-slug}
+        // Example: /game/pal-playstation-4/god-of-war
         const urlParts = currentUrl.split('/');
         let extractedPlatform = '';
+        let extractedGameName = '';
 
-        if (urlParts.length >= 6 && urlParts[4]) {
-          // Platform is at index 4: ['https:', '', 'www.pricecharting.com', 'game', 'pal-playstation-4', 'god-of-war']
-          const platformSlug = urlParts[4];
-          // Convert slug to readable format: "pal-playstation-4" -> "PAL Playstation 4"
-          extractedPlatform = platformSlug
-            .split('-')
-            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-            .join(' ');
+        if (urlParts.length >= 6) {
+          // Platform is at index 4, game name at index 5
+          // ['https:', '', 'www.pricecharting.com', 'game', 'pal-playstation-4', 'god-of-war']
+
+          if (urlParts[4]) {
+            const platformSlug = urlParts[4];
+            // Convert slug to readable format: "pal-playstation-4" -> "Pal Playstation 4"
+            extractedPlatform = platformSlug
+              .split('-')
+              .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+              .join(' ');
+          }
+
+          if (urlParts[5]) {
+            const gameNameSlug = urlParts[5];
+            // Convert slug to readable format: "god-of-war" -> "God Of War"
+            extractedGameName = gameNameSlug
+              .split('-')
+              .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+              .join(' ');
+          }
         }
 
         const finalPlatform = extractedPlatform || platform;
-        const finalGameName = pageGameName || gameName;
+        const finalGameName = extractedGameName || gameName;
         const displayName = finalPlatform
           ? `${finalGameName} (${finalPlatform})`
           : finalGameName;
