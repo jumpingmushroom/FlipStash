@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
 import PriceChart from '../components/PriceChart';
+import { convertCurrency, formatCurrency } from '../services/currency';
 import './PriceTrackerPage.css';
 
-export default function PriceTrackerPage() {
+export default function PriceTrackerPage({ currency = 'USD' }) {
   const [dashboard, setDashboard] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -165,14 +166,14 @@ export default function PriceTrackerPage() {
                   </td>
                   <td className="value-cell">
                     <div className="current-value">
-                      ${game.market_value?.toFixed(2) || 'N/A'}
+                      {game.market_value !== null ? formatCurrency(convertCurrency(game.market_value, game.market_value_currency || 'USD', currency), currency) : 'N/A'}
                     </div>
                   </td>
                   <td className="price-change-cell">
                     {hasPriceData ? (
                       <div className={`price-change ${game.price_change >= 0 ? 'positive' : 'negative'}`}>
                         <div className="price-change-amount">
-                          {game.price_change >= 0 ? '+' : ''}${game.price_change.toFixed(2)}
+                          {game.price_change >= 0 ? '+' : ''}{formatCurrency(convertCurrency(Math.abs(game.price_change), game.market_value_currency || 'USD', currency), currency).replace(/^[^\d-]+/, game.price_change >= 0 ? '+' : '-')}
                         </div>
                         <div className="price-change-percentage">
                           ({game.price_change_percentage >= 0 ? '+' : ''}{game.price_change_percentage.toFixed(2)}%)
