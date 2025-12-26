@@ -69,7 +69,10 @@ function GameDetailPage({ onGamesUpdate }) {
       if (onGamesUpdate) {
         await onGamesUpdate();
       }
-      navigate('/');
+      // Small delay to ensure React has re-rendered with updated state
+      setTimeout(() => {
+        navigate('/');
+      }, 50);
     } catch (err) {
       alert('Failed to delete game');
       console.error(err);
