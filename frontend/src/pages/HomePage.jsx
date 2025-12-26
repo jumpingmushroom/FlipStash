@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import GameCard from '../components/GameCard';
 import { gamesApi } from '../services/api';
 import './HomePage.css';
 
 function HomePage({ games, currency, onEdit, onDelete, onRefreshMarket, onGamesUpdate }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const [filteredGames, setFilteredGames] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [platformFilter, setPlatformFilter] = useState('');
@@ -29,6 +30,15 @@ function HomePage({ games, currency, onEdit, onDelete, onRefreshMarket, onGamesU
   const [showFiltersPanel, setShowFiltersPanel] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [refreshProgress, setRefreshProgress] = useState(null);
+
+  // Refresh games list when navigating back after deletion
+  useEffect(() => {
+    if (location.state?.shouldRefresh && onGamesUpdate) {
+      onGamesUpdate();
+      // Clear the state to prevent re-fetching on subsequent renders
+      window.history.replaceState({}, document.title);
+    }
+  }, [location, onGamesUpdate]);
 
   useEffect(() => {
     applyFiltersAndSort();

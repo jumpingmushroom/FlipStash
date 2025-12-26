@@ -65,13 +65,8 @@ function GameDetailPage({ onGamesUpdate }) {
 
     try {
       await gamesApi.delete(id);
-      // Refresh the games list before navigating
-      if (onGamesUpdate) {
-        await onGamesUpdate();
-      }
-      // Small delay to ensure React has re-rendered with updated state
-      await new Promise(resolve => setTimeout(resolve, 100));
-      navigate('/');
+      // Navigate immediately and signal HomePage to refresh
+      navigate('/', { state: { shouldRefresh: true } });
     } catch (err) {
       alert('Failed to delete game');
       console.error(err);
