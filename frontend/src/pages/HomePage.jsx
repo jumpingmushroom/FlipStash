@@ -10,7 +10,6 @@ function HomePage({ games, currency, onEdit, onDelete, onRefreshMarket, onGamesU
   const [filteredGames, setFilteredGames] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [platformFilter, setPlatformFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
   const [postedFilter, setPostedFilter] = useState('');
   const [acquisitionSourceFilter, setAcquisitionSourceFilter] = useState('');
   const [sortBy, setSortBy] = useState('created_at');
@@ -19,13 +18,16 @@ function HomePage({ games, currency, onEdit, onDelete, onRefreshMarket, onGamesU
   const [viewMode, setViewMode] = useState(() => {
     return localStorage.getItem('flipstash_view_mode') || 'grid';
   });
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [hideSold, setHideSold] = useState(() => {
+    return localStorage.getItem('flipstash_hide_sold') === 'true';
+  });
+  const [showFiltersPanel, setShowFiltersPanel] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [refreshProgress, setRefreshProgress] = useState(null);
 
   useEffect(() => {
     applyFiltersAndSort();
-  }, [games, searchQuery, platformFilter, statusFilter, postedFilter, acquisitionSourceFilter, sortBy]);
+  }, [games, searchQuery, platformFilter, hideSold, postedFilter, acquisitionSourceFilter, sortBy]);
 
   const applyFiltersAndSort = () => {
     let filtered = [...games];
@@ -43,10 +45,8 @@ function HomePage({ games, currency, onEdit, onDelete, onRefreshMarket, onGamesU
       filtered = filtered.filter(game => game.platform === platformFilter);
     }
 
-    // Status filter
-    if (statusFilter === 'sold') {
-      filtered = filtered.filter(game => game.sold_value !== null);
-    } else if (statusFilter === 'available') {
+    // Hide sold filter
+    if (hideSold) {
       filtered = filtered.filter(game => game.sold_value === null);
     }
 
@@ -242,12 +242,27 @@ function HomePage({ games, currency, onEdit, onDelete, onRefreshMarket, onGamesU
     localStorage.setItem('flipstash_view_mode', mode);
   };
 
-  // Count active advanced filters
+  const handleHideSoldToggle = () => {
+    const newValue = !hideSold;
+    setHideSold(newValue);
+    localStorage.setItem('flipstash_hide_sold', newValue.toString());
+  };
+
+  // Count active filters
   const getActiveFiltersCount = () => {
     let count = 0;
+    if (platformFilter) count++;
     if (postedFilter) count++;
     if (acquisitionSourceFilter) count++;
+    if (sortBy !== 'created_at') count++; // Count sort if not default
     return count;
+  };
+
+  const clearAllFilters = () => {
+    setPlatformFilter('');
+    setPostedFilter('');
+    setAcquisitionSourceFilter('');
+    setSortBy('created_at');
   };
 
   // Get unique platforms and acquisition sources for filter dropdowns
@@ -271,84 +286,109 @@ function HomePage({ games, currency, onEdit, onDelete, onRefreshMarket, onGamesU
             onChange={(e) => setSearchQuery(e.target.value)}
           />
 
-          <select
-            className="select"
-            value={platformFilter}
-            onChange={(e) => setPlatformFilter(e.target.value)}
-          >
-            <option value="">All Platforms</option>
-            {platforms.map(platform => (
-              <option key={platform} value={platform}>{platform}</option>
-            ))}
-          </select>
+          <div className="filters-dropdown-container">
+            <button
+              onClick={() => setShowFiltersPanel(!showFiltersPanel)}
+              className="btn btn-secondary filters-button"
+            >
+              🔍 Filters {getActiveFiltersCount() > 0 && `(${getActiveFiltersCount()})`}
+            </button>
 
-          <select
-            className="select"
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-          >
-            <option value="">All Games</option>
-            <option value="available">Available</option>
-            <option value="sold">Sold</option>
-          </select>
+            {showFiltersPanel && (
+              <div className="filters-panel">
+                <div className="filters-panel-header">
+                  <h3>Filters & Sort</h3>
+                  <button
+                    onClick={() => setShowFiltersPanel(false)}
+                    className="close-panel-btn"
+                  >
+                    ✕
+                  </button>
+                </div>
 
-          <select
-            className="select"
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-          >
-            <option value="created_at">Sort: Newest</option>
-            <option value="name">Sort: Name</option>
-            <option value="purchase_value">Sort: Purchase Value</option>
-            <option value="market_value">Sort: Market Value</option>
-          </select>
+                <div className="filter-group">
+                  <label className="filter-label">Platform</label>
+                  <select
+                    className="select"
+                    value={platformFilter}
+                    onChange={(e) => setPlatformFilter(e.target.value)}
+                  >
+                    <option value="">All Platforms</option>
+                    {platforms.map(platform => (
+                      <option key={platform} value={platform}>{platform}</option>
+                    ))}
+                  </select>
+                </div>
 
-          <button
-            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-            className="btn btn-secondary advanced-filters-toggle"
-          >
-            🔍 Filters {getActiveFiltersCount() > 0 && `(${getActiveFiltersCount()})`}
-          </button>
+                <div className="filter-group">
+                  <label className="filter-label">Posted Status</label>
+                  <select
+                    className="select"
+                    value={postedFilter}
+                    onChange={(e) => setPostedFilter(e.target.value)}
+                  >
+                    <option value="">All</option>
+                    <option value="posted">Posted Online</option>
+                    <option value="not-posted">Not Posted</option>
+                  </select>
+                </div>
+
+                {acquisitionSources.length > 0 && (
+                  <div className="filter-group">
+                    <label className="filter-label">Acquisition Source</label>
+                    <select
+                      className="select"
+                      value={acquisitionSourceFilter}
+                      onChange={(e) => setAcquisitionSourceFilter(e.target.value)}
+                    >
+                      <option value="">All Sources</option>
+                      {acquisitionSources.map(source => (
+                        <option key={source} value={source}>{source}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                <div className="filter-group">
+                  <label className="filter-label">Sort By</label>
+                  <select
+                    className="select"
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                  >
+                    <option value="created_at">Newest First</option>
+                    <option value="name">Name (A-Z)</option>
+                    <option value="purchase_value">Purchase Value</option>
+                    <option value="market_value">Market Value</option>
+                  </select>
+                </div>
+
+                {getActiveFiltersCount() > 0 && (
+                  <button
+                    onClick={clearAllFilters}
+                    className="btn btn-secondary btn-small"
+                    style={{ width: '100%', marginTop: '0.5rem' }}
+                  >
+                    Clear All Filters
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
+          <label className="hide-sold-toggle">
+            <input
+              type="checkbox"
+              checked={hideSold}
+              onChange={handleHideSoldToggle}
+            />
+            <span className="toggle-label">Hide Sold</span>
+          </label>
 
           <button onClick={handleAddGame} className="btn btn-primary">
             + Add Game
           </button>
         </div>
-
-        {showAdvancedFilters && (
-          <div className="advanced-filters">
-            <select
-              className="select"
-              value={postedFilter}
-              onChange={(e) => setPostedFilter(e.target.value)}
-            >
-              <option value="">Posted Status: All</option>
-              <option value="posted">Posted Online</option>
-              <option value="not-posted">Not Posted</option>
-            </select>
-
-            <select
-              className="select"
-              value={acquisitionSourceFilter}
-              onChange={(e) => setAcquisitionSourceFilter(e.target.value)}
-            >
-              <option value="">Source: All</option>
-              {acquisitionSources.map(source => (
-                <option key={source} value={source}>{source}</option>
-              ))}
-            </select>
-
-            <button
-              onClick={() => {
-                setPostedFilter('');
-                setAcquisitionSourceFilter('');
-              }}
-              className="btn btn-secondary btn-small"
-            >
-              Clear Filters
-            </button>
-          </div>
-        )}
       </div>
 
       {/* Batch Actions Bar */}

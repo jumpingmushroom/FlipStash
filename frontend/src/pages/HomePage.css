@@ -453,3 +453,133 @@
 .results-scroll::-webkit-scrollbar-thumb:hover {
   background: var(--primary-color);
 }
+
+/* Filters Dropdown Panel */
+.filters-dropdown-container {
+  position: relative;
+}
+
+.filters-button {
+  white-space: nowrap;
+}
+
+.filters-panel {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  min-width: 300px;
+  background-color: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  z-index: 100;
+  animation: slideDown 0.2s ease-out;
+}
+
+.filters-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1rem 0.75rem 1rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.filters-panel-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--text-primary);
+}
+
+.close-panel-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+
+.close-panel-btn:hover {
+  color: var(--text-primary);
+}
+
+.filter-group {
+  padding: 1rem;
+}
+
+.filter-group:not(:last-child) {
+  border-bottom: 1px solid var(--border-color);
+}
+
+.filter-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.filter-group .select {
+  width: 100%;
+  margin: 0;
+}
+
+/* Hide Sold Toggle */
+.hide-sold-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background-color: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.hide-sold-toggle:hover {
+  background-color: var(--surface-hover);
+  border-color: var(--primary-color);
+}
+
+.hide-sold-toggle input[type="checkbox"] {
+  cursor: pointer;
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary-color);
+}
+
+.toggle-label {
+  font-size: 1rem;
+  color: var(--text-primary);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .filters-panel {
+    right: auto;
+    left: 0;
+    min-width: 280px;
+  }
+
+  .main-controls-row {
+    width: 100%;
+  }
+
+  .search-input {
+    width: 100%;
+    min-width: 100%;
+  }
+}
