@@ -135,7 +135,7 @@ function App() {
           />
           <Route
             path="/game/:id"
-            element={<GameDetailPage />}
+            element={<GameDetailPage onGamesUpdate={loadGames} />}
           />
           <Route
             path="/add-game"
