@@ -20,31 +20,60 @@ export default function PriceSelectionModal({ results, gamePlatform, onSelect, o
     // Normalize the game platform for comparison (lowercase, remove special chars)
     const normalizedGamePlatform = gamePlatform.toLowerCase().replace(/[^a-z0-9\s]/g, '');
 
+    // Platform aliases - map common abbreviations to their full names
+    const platformAliases = {
+      'snes': ['super nintendo', 'snes'],
+      'super nintendo': ['super nintendo', 'snes'],
+      'nes': ['nes', 'nintendo entertainment system'],
+      'n64': ['nintendo 64', 'n64'],
+      'nintendo 64': ['nintendo 64', 'n64'],
+      'ps1': ['playstation', 'ps1', 'psx'],
+      'playstation 1': ['playstation', 'ps1', 'psx'],
+      'playstation': ['playstation', 'ps1', 'psx'],
+      'ps2': ['playstation 2', 'ps2'],
+      'playstation 2': ['playstation 2', 'ps2'],
+      'ps3': ['playstation 3', 'ps3'],
+      'playstation 3': ['playstation 3', 'ps3'],
+      'ps4': ['playstation 4', 'ps4'],
+      'playstation 4': ['playstation 4', 'ps4'],
+      'ps5': ['playstation 5', 'ps5'],
+      'playstation 5': ['playstation 5', 'ps5'],
+      'gba': ['game boy advance', 'gameboy advance', 'gba'],
+      'game boy advance': ['game boy advance', 'gameboy advance', 'gba'],
+      'gbc': ['game boy color', 'gameboy color', 'gbc'],
+      'game boy color': ['game boy color', 'gameboy color', 'gbc'],
+      'gb': ['game boy', 'gameboy', 'gb'],
+      'game boy': ['game boy', 'gameboy', 'gb']
+    };
+
     // Define brand names that shouldn't be used alone for matching
     const brandNames = ['nintendo', 'playstation', 'sony', 'microsoft', 'xbox', 'sega'];
 
-    // Extract platform-specific identifier (not just brand name)
-    // e.g., "Nintendo Wii (PAL)" -> focus on "wii", not "nintendo"
-    const gamePlatformWords = normalizedGamePlatform
-      .split(/\s+/)
-      .filter(w => w.length > 1 && !brandNames.includes(w));
-
-    // If no specific platform words found, fall back to all words
-    const keywordsToMatch = gamePlatformWords.length > 0
-      ? gamePlatformWords
-      : normalizedGamePlatform.split(/\s+/).filter(w => w.length > 2);
+    // Get all possible aliases for the game platform
+    let platformVariations = [normalizedGamePlatform];
+    for (const [key, aliases] of Object.entries(platformAliases)) {
+      if (normalizedGamePlatform.includes(key)) {
+        platformVariations = aliases;
+        break;
+      }
+    }
 
     return resultsList.filter(result => {
       if (!result.platform) return true; // Keep results without platform info
 
       const normalizedResultPlatform = result.platform.toLowerCase().replace(/[^a-z0-9\s]/g, '');
 
-      // Check if the platform-specific keywords match
-      // e.g., "Wii" should match "PAL Wii", "Wii", etc. but NOT "Wii U" or "DS"
-      return keywordsToMatch.every(gameKeyword => {
-        // Check if this keyword appears as a whole word in result platform
-        const regex = new RegExp(`\\b${gameKeyword}\\b`, 'i');
-        return regex.test(normalizedResultPlatform);
+      // Check if any platform variation matches
+      return platformVariations.some(variation => {
+        const variationWords = variation
+          .split(/\s+/)
+          .filter(w => w.length > 1 && !brandNames.includes(w));
+
+        // Check if all significant words from the variation appear in result platform
+        return variationWords.every(word => {
+          const regex = new RegExp(`\\b${word}\\b`, 'i');
+          return regex.test(normalizedResultPlatform);
+        });
       });
     });
   };
