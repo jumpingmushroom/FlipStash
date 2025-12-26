@@ -1,4 +1,5 @@
 import puppeteer from 'puppeteer';
+import { getMarkupMultiplier } from './settings.js';
 
 /**
  * Initialize a browser instance with human-like configuration
@@ -1171,7 +1172,7 @@ export async function getMarketValue(gameName, platform, condition = 'CIB (Compl
   }
 
   // Calculate selling value (market value + 10%)
-  const sellingValue = Math.round(marketValue * 1.10 * 100) / 100;
+  const sellingValue = Math.round(marketValue * getMarkupMultiplier() * 100) / 100;
 
   return {
     market_value: Math.round(marketValue * 100) / 100,
@@ -1267,7 +1268,7 @@ export async function getPriceFromUrl(url, condition = 'CIB (Complete in Box)') 
       };
     }
 
-    const sellingValue = Math.round(price * 1.10 * 100) / 100;
+    const sellingValue = Math.round(price * getMarkupMultiplier() * 100) / 100;
 
     return {
       market_value: Math.round(price * 100) / 100,
@@ -1285,7 +1286,7 @@ export async function getPriceFromUrl(url, condition = 'CIB (Complete in Box)') 
       };
     }
 
-    const sellingValue = Math.round(price * 1.10 * 100) / 100;
+    const sellingValue = Math.round(price * getMarkupMultiplier() * 100) / 100;
 
     return {
       market_value: Math.round(price * 100) / 100,
