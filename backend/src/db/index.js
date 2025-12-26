@@ -131,6 +131,13 @@ try {
     console.log('Migrating database: Adding finn_url column');
     db.exec(`ALTER TABLE games ADD COLUMN finn_url TEXT`);
   }
+
+  // Migration: Add price_source column to track which source is used
+  if (!columns.includes('price_source')) {
+    console.log('Migrating database: Adding price_source column');
+    db.exec(`ALTER TABLE games ADD COLUMN price_source TEXT`);
+    // Possible values: 'pricecharting', 'finnno', 'manual', NULL
+  }
 } catch (error) {
   console.error('Migration error:', error.message);
 }
@@ -202,8 +209,8 @@ export const statements = {
       purchase_value_currency, market_value_currency, selling_value_currency, sold_value_currency,
       posted_online, region, acquisition_source,
       igdb_slug, igdb_summary, igdb_genres, igdb_rating, igdb_url,
-      pricecharting_url, finn_url
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      pricecharting_url, finn_url, price_source
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `),
 
   updateGame: db.prepare(`
@@ -215,7 +222,7 @@ export const statements = {
       purchase_value_currency = ?, market_value_currency = ?, selling_value_currency = ?, sold_value_currency = ?,
       posted_online = ?, region = ?, acquisition_source = ?,
       igdb_slug = ?, igdb_summary = ?, igdb_genres = ?, igdb_rating = ?, igdb_url = ?,
-      pricecharting_url = ?, finn_url = ?,
+      pricecharting_url = ?, finn_url = ?, price_source = ?,
       updated_at = CURRENT_TIMESTAMP
     WHERE id = ?
   `),
@@ -224,6 +231,7 @@ export const statements = {
     UPDATE games SET
       market_value = ?, selling_value = ?,
       market_value_currency = ?, selling_value_currency = ?,
+      price_source = ?,
       last_refresh_at = CURRENT_TIMESTAMP,
       updated_at = CURRENT_TIMESTAMP
     WHERE id = ?

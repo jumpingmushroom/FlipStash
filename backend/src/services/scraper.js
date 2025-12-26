@@ -1170,12 +1170,6 @@ async function scrapeFinnNo(gameName, platform, returnMultipleResults = false) {
 
     await browser.close();
 
-    // If returnMultipleResults is true, return filtered results for user selection
-    if (returnMultipleResults) {
-      console.log('Returning filtered Finn.no search results for user selection');
-      return filteredResults;
-    }
-
     // Extract prices from filtered results
     const prices = filteredResults
       .map(result => result.price)
@@ -1184,12 +1178,24 @@ async function scrapeFinnNo(gameName, platform, returnMultipleResults = false) {
     console.log(`Finn.no prices after filtering:`, prices);
 
     if (prices.length === 0) {
-      return null;
+      return returnMultipleResults ? [] : null;
     }
 
     // Calculate median price (more robust than average)
     const median = calculateMedian(prices);
     console.log(`Finn.no median price: ${median} kr (from ${prices.length} listings)`);
+
+    // If returnMultipleResults is true, return as a single median result
+    if (returnMultipleResults) {
+      console.log('Returning Finn.no median as single result for user selection');
+      return [{
+        name: `Finn.no (median of ${prices.length} listing${prices.length !== 1 ? 's' : ''})`,
+        price: Math.round(median),
+        url: finnUrl,  // Use the search URL
+        count: prices.length,
+        isFinnMedian: true  // Flag to identify this as a Finn.no median result
+      }];
+    }
 
     return Math.round(median);
   } catch (error) {
