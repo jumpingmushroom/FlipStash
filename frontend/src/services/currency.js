@@ -1,6 +1,8 @@
 // Currency conversion service
 // Note: Market values are scraped in USD, so conversion is from USD to selected currency
 
+import { exchangeRatesApi } from './api';
+
 export const CURRENCIES = [
   { code: 'USD', symbol: '$', name: 'US Dollar' },
   { code: 'EUR', symbol: '€', name: 'Euro' },
@@ -14,9 +16,8 @@ export const CURRENCIES = [
   { code: 'CHF', symbol: 'CHF', name: 'Swiss Franc' },
 ];
 
-// Exchange rates from USD (as of typical rates, should be updated periodically)
-// In a production app, you might fetch these from an API
-const EXCHANGE_RATES = {
+// Fallback exchange rates from USD (used if API fetch fails)
+const FALLBACK_EXCHANGE_RATES = {
   USD: 1,
   EUR: 0.92,
   GBP: 0.79,
@@ -27,6 +28,53 @@ const EXCHANGE_RATES = {
   CAD: 1.36,
   AUD: 1.52,
   CHF: 0.88,
+};
+
+// Live exchange rates (fetched from API)
+let EXCHANGE_RATES = { ...FALLBACK_EXCHANGE_RATES };
+let lastUpdated = null;
+
+/**
+ * Fetch live exchange rates from API
+ * @returns {Promise<Object>} - Exchange rates data with lastUpdated timestamp
+ */
+export const fetchLiveExchangeRates = async () => {
+  try {
+    const response = await exchangeRatesApi.get();
+    EXCHANGE_RATES = response.data.rates;
+    lastUpdated = response.data.lastUpdated;
+    console.log('Fetched live exchange rates:', lastUpdated);
+    return { rates: EXCHANGE_RATES, lastUpdated };
+  } catch (error) {
+    console.error('Error fetching live exchange rates:', error.message);
+    console.log('Using fallback exchange rates');
+    return { rates: EXCHANGE_RATES, lastUpdated: null };
+  }
+};
+
+/**
+ * Manually refresh exchange rates
+ * @returns {Promise<Object>} - Exchange rates data with lastUpdated timestamp
+ */
+export const refreshExchangeRates = async () => {
+  try {
+    const response = await exchangeRatesApi.refresh();
+    EXCHANGE_RATES = response.data.rates;
+    lastUpdated = response.data.lastUpdated;
+    console.log('Refreshed exchange rates:', lastUpdated);
+    return { rates: EXCHANGE_RATES, lastUpdated };
+  } catch (error) {
+    console.error('Error refreshing exchange rates:', error.message);
+    throw error;
+  }
+};
+
+/**
+ * Get the last updated timestamp
+ * @returns {string|null} - ISO timestamp of last update
+ */
+export const getExchangeRatesLastUpdated = () => {
+  return lastUpdated;
 };
 
 /**

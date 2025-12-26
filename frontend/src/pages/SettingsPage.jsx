@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CURRENCIES } from '../services/currency';
+import { CURRENCIES, refreshExchangeRates, getExchangeRatesLastUpdated } from '../services/currency';
 import { settingsApi } from '../services/api';
 import './SettingsPage.css';
 
@@ -8,10 +8,12 @@ function SettingsPage({ currentCurrency, onCurrencyChange }) {
   const [markupPercentage, setMarkupPercentage] = useState(10);
   const [saveMessage, setSaveMessage] = useState('');
   const [error, setError] = useState('');
+  const [exchangeRatesLastUpdated, setExchangeRatesLastUpdated] = useState(null);
+  const [isRefreshingRates, setIsRefreshingRates] = useState(false);
 
-  // Fetch markup setting on mount
+  // Fetch markup setting and exchange rate timestamp on mount
   useEffect(() => {
-    const fetchMarkup = async () => {
+    const fetchSettings = async () => {
       try {
         const response = await settingsApi.getMarkup();
         setMarkupPercentage(response.data.markup_percentage);
@@ -19,7 +21,8 @@ function SettingsPage({ currentCurrency, onCurrencyChange }) {
         console.error('Failed to fetch markup setting:', err);
       }
     };
-    fetchMarkup();
+    fetchSettings();
+    setExchangeRatesLastUpdated(getExchangeRatesLastUpdated());
   }, []);
 
   const handleSave = async () => {
@@ -54,6 +57,44 @@ function SettingsPage({ currentCurrency, onCurrencyChange }) {
     } catch (err) {
       setError('Failed to save settings: ' + (err.response?.data?.error || err.message));
       console.error('Error saving settings:', err);
+    }
+  };
+
+  const handleRefreshExchangeRates = async () => {
+    setError('');
+    setSaveMessage('');
+    setIsRefreshingRates(true);
+
+    try {
+      const result = await refreshExchangeRates();
+      setExchangeRatesLastUpdated(result.lastUpdated);
+      setSaveMessage('Exchange rates refreshed successfully!');
+
+      setTimeout(() => {
+        setSaveMessage('');
+      }, 3000);
+    } catch (err) {
+      setError('Failed to refresh exchange rates: ' + (err.response?.data?.error || err.message));
+      console.error('Error refreshing exchange rates:', err);
+    } finally {
+      setIsRefreshingRates(false);
+    }
+  };
+
+  const formatLastUpdated = (timestamp) => {
+    if (!timestamp) return 'Never';
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffDays > 0) {
+      return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
+    } else if (diffHours > 0) {
+      return `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`;
+    } else {
+      return 'Less than an hour ago';
     }
   };
 
@@ -98,6 +139,26 @@ function SettingsPage({ currentCurrency, onCurrencyChange }) {
             />
             <div className="help-text">
               Percentage to add to market value when calculating selling price. For example, 10% means selling price = market value × 1.10.
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Exchange Rates</label>
+            <div className="exchange-rates-info">
+              <div className="help-text">
+                Last updated: {formatLastUpdated(exchangeRatesLastUpdated)}
+              </div>
+              <button
+                onClick={handleRefreshExchangeRates}
+                className="btn btn-secondary"
+                disabled={isRefreshingRates}
+                style={{ marginTop: '0.5rem' }}
+              >
+                {isRefreshingRates ? 'Refreshing...' : 'Refresh Exchange Rates'}
+              </button>
+            </div>
+            <div className="help-text" style={{ marginTop: '0.5rem' }}>
+              Exchange rates are automatically updated daily. Click to manually refresh from live rates.
             </div>
           </div>
 

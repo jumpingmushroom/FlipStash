@@ -156,6 +156,15 @@ db.exec(`
   )
 `);
 
+// Create exchange_rates table
+db.exec(`
+  CREATE TABLE IF NOT EXISTS exchange_rates (
+    currency_code TEXT PRIMARY KEY,
+    rate REAL NOT NULL,
+    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+  )
+`);
+
 // Initialize default settings if they don't exist
 try {
   const markupSetting = db.prepare('SELECT value FROM settings WHERE key = ?').get('markup_percentage');

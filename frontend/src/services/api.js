@@ -116,4 +116,10 @@ export const settingsApi = {
   setMarkup: (markupPercentage) => api.put('/settings/markup', { markup_percentage: markupPercentage })
 };
 
+// Exchange Rates API
+export const exchangeRatesApi = {
+  get: () => api.get('/exchange-rates'),
+  refresh: () => api.post('/exchange-rates/refresh')
+};
+
 export default api;
