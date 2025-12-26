@@ -169,144 +169,10 @@ body {
   width: 100%;
 }
 
-.games-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 1.5rem;
-}
-
 .games-list {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-}
-
-.games-tiles {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
-  gap: 2rem;
-}
-
-.game-card {
-  background-color: var(--surface-color);
-  border-radius: 8px;
-  padding: 1.5rem;
-  border: 1px solid var(--border-color);
-  transition: transform 0.2s, box-shadow 0.2s;
-  cursor: pointer;
-  position: relative;
-}
-
-.game-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-}
-
-.game-card-large {
-  padding: 2rem;
-}
-
-.game-card-checkbox {
-  position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
-  z-index: 10;
-}
-
-.game-card-checkbox input {
-  cursor: pointer;
-  width: 20px;
-  height: 20px;
-}
-
-.game-card-header {
-  display: flex;
-  gap: 1rem;
-  margin-bottom: 1rem;
-}
-
-.game-cover {
-  width: 80px;
-  height: 100px;
-  object-fit: cover;
-  border-radius: 4px;
-  background-color: var(--bg-color);
-}
-
-.game-cover-placeholder {
-  width: 80px;
-  height: 100px;
-  border-radius: 4px;
-  background-color: var(--bg-color);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-secondary);
-  font-size: 2rem;
-}
-
-.game-info {
-  flex: 1;
-}
-
-.game-title {
-  font-size: 1.2rem;
-  font-weight: bold;
-  margin-bottom: 0.5rem;
-  color: var(--text-primary);
-}
-
-.game-platform {
-  display: inline-block;
-  padding: 0.25rem 0.5rem;
-  background-color: var(--primary-color);
-  color: white;
-  border-radius: 4px;
-  font-size: 0.85rem;
-  margin-bottom: 0.5rem;
-}
-
-.game-condition {
-  color: var(--text-secondary);
-  font-size: 0.9rem;
-}
-
-.game-details {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-}
-
-.detail-item {
-  display: flex;
-  flex-direction: column;
-}
-
-.detail-label {
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-  text-transform: uppercase;
-}
-
-.detail-value {
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.detail-value.positive {
-  color: var(--success-color);
-}
-
-.detail-value.negative {
-  color: var(--danger-color);
-}
-
-.game-actions {
-  display: flex;
-  gap: 0.5rem;
-  margin-top: 1rem;
 }
 
 .btn-small {
@@ -1205,26 +1071,6 @@ body {
   font-size: 0.9rem;
 }
 
-/* View Details Button */
-.btn-view-details {
-  width: 100%;
-  margin-top: 1rem;
-  padding: 0.75rem;
-  background: none;
-  border: 1px solid var(--primary-color);
-  color: var(--primary-color);
-  border-radius: 6px;
-  font-size: 0.9rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn-view-details:hover {
-  background-color: var(--primary-color);
-  color: white;
-}
-
 /* Badge Styles */
 .badge {
   display: inline-block;
@@ -1414,10 +1260,6 @@ body {
 }
 
 @media (max-width: 768px) {
-  .games-tiles {
-    grid-template-columns: 1fr;
-  }
-
   .game-list-item {
     flex-direction: column;
     align-items: flex-start;
