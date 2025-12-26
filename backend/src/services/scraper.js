@@ -188,8 +188,27 @@ async function parsePriceChartingSearchResults(page, condition = 'CIB (Complete 
   const targetCondition = conditionMap[condition] || 'Complete';
 
   return await page.evaluate((targetCondition) => {
-    const table = document.querySelector('table.table.table-striped, table#games_table');
-    if (!table) return [];
+    // Try specific table selectors first
+    let table = document.querySelector('table.table.table-striped, table#games_table');
+
+    // If not found, look for any table with game links
+    if (!table) {
+      const tables = document.querySelectorAll('table');
+      for (const t of tables) {
+        const gameLinks = t.querySelectorAll('a[href*="/game/"]');
+        if (gameLinks.length > 0) {
+          table = t;
+          break;
+        }
+      }
+    }
+
+    if (!table) {
+      console.log('No table with game results found');
+      return [];
+    }
+
+    console.log('Found results table');
 
     // Find which column index corresponds to the target condition
     const headerRow = table.querySelector('thead tr');
@@ -215,7 +234,13 @@ async function parsePriceChartingSearchResults(page, condition = 'CIB (Complete 
       }
     }
 
-    const rows = table.querySelectorAll('tbody tr');
+    // Get table body rows - try tbody first, fallback to all tr elements
+    let rows = table.querySelectorAll('tbody tr');
+    if (rows.length === 0) {
+      rows = table.querySelectorAll('tr');
+    }
+
+    console.log(`Found ${rows.length} rows in table`);
     const results = [];
 
     for (const row of rows) {
@@ -415,9 +440,28 @@ async function scrapePriceChartingGeneralSearch(gameName, platform, condition = 
 
     await randomDelay(1000, 2000);
 
-    // Check if we're on a search results page and need to click the first result
+    // Log current URL for debugging
+    const currentUrl = page.url();
+    console.log(`Landed on URL: ${currentUrl}`);
+
+    // Check if we're on a search results page - try multiple selectors
     const isSearchResults = await page.evaluate(() => {
-      const searchTable = document.querySelector('table.table.table-striped, table#games_table');
+      // Try specific table selectors first
+      let searchTable = document.querySelector('table.table.table-striped, table#games_table');
+
+      // If not found, try more generic table selectors
+      if (!searchTable) {
+        // Look for any table that has game links
+        const tables = document.querySelectorAll('table');
+        for (const table of tables) {
+          const gameLinks = table.querySelectorAll('a[href*="/game/"]');
+          if (gameLinks.length > 0) {
+            searchTable = table;
+            break;
+          }
+        }
+      }
+
       return searchTable !== null;
     });
 
@@ -434,7 +478,29 @@ async function scrapePriceChartingGeneralSearch(gameName, platform, condition = 
 
       // Click on the first result that matches our platform AND region
       const clickedResult = await page.evaluate((regionPrefix, platformName) => {
-        const rows = document.querySelectorAll('table.table.table-striped tbody tr, table#games_table tbody tr');
+        // Find the results table
+        let table = document.querySelector('table.table.table-striped, table#games_table');
+        if (!table) {
+          const tables = document.querySelectorAll('table');
+          for (const t of tables) {
+            const gameLinks = t.querySelectorAll('a[href*="/game/"]');
+            if (gameLinks.length > 0) {
+              table = t;
+              break;
+            }
+          }
+        }
+
+        if (!table) {
+          console.log('No table found for clicking results');
+          return false;
+        }
+
+        // Get rows from the table
+        let rows = table.querySelectorAll('tbody tr');
+        if (rows.length === 0) {
+          rows = table.querySelectorAll('tr');
+        }
 
         // Normalize platform name for matching
         const platformKeywords = platformName.toLowerCase().split(' ').filter(word =>
@@ -499,10 +565,12 @@ async function scrapePriceChartingGeneralSearch(gameName, platform, condition = 
 
         console.log('No match found with platform+region filters, trying first result');
         // If no region match found, click the first result anyway as last resort
-        const firstLink = document.querySelector('table.table.table-striped tbody tr a[href*="/game/"], table#games_table tbody tr a[href*="/game/"]');
-        if (firstLink) {
-          firstLink.click();
-          return true;
+        if (table) {
+          const firstLink = table.querySelector('a[href*="/game/"]');
+          if (firstLink) {
+            firstLink.click();
+            return true;
+          }
         }
 
         return false;
