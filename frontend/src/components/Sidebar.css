@@ -6,9 +6,27 @@
   width: 240px;
   background-color: var(--surface-color);
   border-right: 1px solid var(--border-color);
-  padding-top: 5rem;
   transition: transform 0.3s ease;
   z-index: 100;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.sidebar-logo {
+  text-decoration: none;
+  display: block;
+}
+
+.sidebar-logo h1 {
+  font-size: 1.8rem;
+  color: var(--primary-color);
+  margin: 0;
+  text-align: center;
 }
 
 .sidebar-nav {
