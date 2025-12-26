@@ -2,22 +2,37 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { convertCurrency, formatCurrency } from '../services/currency';
 
-function GameCard({ game, currency = 'USD', onEdit, onDelete, onRefreshMarket, isSelected = false, onSelect }) {
+function GameCard({ game, currency = 'USD', onEdit, onDelete, onRefreshMarket, isSelected = false, onSelect, selectionMode = false }) {
   const navigate = useNavigate();
   const isSold = game.sold_value !== null;
 
-  const handleViewDetails = () => {
-    navigate(`/game/${game.id}`);
+  const handleCardClick = () => {
+    if (selectionMode) {
+      // In selection mode: toggle selection
+      onSelect(!isSelected);
+    } else {
+      // Normal mode: navigate to detail page
+      navigate(`/game/${game.id}`);
+    }
+  };
+
+  const handleCheckboxClick = (e) => {
+    e.stopPropagation();
+    onSelect(!isSelected);
   };
 
   return (
-    <div className="game-list-item" onClick={handleViewDetails}>
+    <div
+      className={`game-list-item ${selectionMode ? 'selection-mode' : ''} ${isSelected ? 'selected' : ''}`}
+      onClick={handleCardClick}
+    >
       {onSelect && (
-        <div className="game-list-checkbox" onClick={(e) => e.stopPropagation()}>
+        <div className="game-list-checkbox" onClick={handleCheckboxClick}>
           <input
             type="checkbox"
             checked={isSelected}
-            onChange={(e) => onSelect(e.target.checked)}
+            onChange={() => {}}
+            readOnly
           />
         </div>
       )}

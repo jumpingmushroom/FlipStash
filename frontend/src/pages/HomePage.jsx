@@ -12,7 +12,16 @@ function HomePage({ games, currency, onEdit, onDelete, onRefreshMarket, onGamesU
   const [postedFilter, setPostedFilter] = useState('');
   const [acquisitionSourceFilter, setAcquisitionSourceFilter] = useState('');
   const [sortBy, setSortBy] = useState('created_at');
-  const [selectedGameIds, setSelectedGameIds] = useState([]);
+  const [selectedGameIds, setSelectedGameIds] = useState(() => {
+    // Restore selections from sessionStorage
+    const saved = sessionStorage.getItem('flipstash_selected_games');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [selectionMode, setSelectionMode] = useState(() => {
+    // If there are saved selections, start in selection mode
+    const saved = sessionStorage.getItem('flipstash_selected_games');
+    return saved ? JSON.parse(saved).length > 0 : false;
+  });
   const [showBatchActions, setShowBatchActions] = useState(false);
   const [hideSold, setHideSold] = useState(() => {
     return localStorage.getItem('flipstash_hide_sold') === 'true';
@@ -24,6 +33,20 @@ function HomePage({ games, currency, onEdit, onDelete, onRefreshMarket, onGamesU
   useEffect(() => {
     applyFiltersAndSort();
   }, [games, searchQuery, platformFilter, hideSold, postedFilter, acquisitionSourceFilter, sortBy]);
+
+  // Persist selected game IDs to sessionStorage
+  useEffect(() => {
+    if (selectedGameIds.length > 0) {
+      sessionStorage.setItem('flipstash_selected_games', JSON.stringify(selectedGameIds));
+    } else {
+      sessionStorage.removeItem('flipstash_selected_games');
+    }
+  }, [selectedGameIds]);
+
+  // Auto-enter/exit selection mode based on selections
+  useEffect(() => {
+    setSelectionMode(selectedGameIds.length > 0);
+  }, [selectedGameIds]);
 
   const applyFiltersAndSort = () => {
     let filtered = [...games];
@@ -98,6 +121,10 @@ function HomePage({ games, currency, onEdit, onDelete, onRefreshMarket, onGamesU
     } else {
       setSelectedGameIds(filteredGames.map(g => g.id));
     }
+  };
+
+  const handleExitSelectionMode = () => {
+    setSelectedGameIds([]);
   };
 
   const handleBatchPostedOnline = async (posted) => {
@@ -377,20 +404,29 @@ function HomePage({ games, currency, onEdit, onDelete, onRefreshMarket, onGamesU
         </div>
       </div>
 
+      {/* Selection Mode Banner */}
+      {selectionMode && (
+        <div className="selection-mode-banner">
+          <div className="selection-mode-info">
+            <span className="selection-mode-icon">✓</span>
+            <span className="selection-mode-text">
+              Selection Mode • {selectedGameIds.length} game(s) selected
+            </span>
+          </div>
+          <button
+            onClick={handleExitSelectionMode}
+            className="btn btn-secondary btn-small"
+          >
+            Exit Selection Mode
+          </button>
+        </div>
+      )}
+
       {/* Batch Actions Bar */}
       {selectedGameIds.length > 0 && (
-        <div style={{
-          padding: '1rem',
-          marginBottom: '1rem',
-          backgroundColor: 'var(--card-bg)',
-          borderRadius: '8px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '1rem',
-          flexWrap: 'wrap'
-        }}>
+        <div className="batch-actions-bar">
           <span style={{ fontWeight: '500' }}>
-            {selectedGameIds.length} game(s) selected
+            Batch Actions:
           </span>
           <button
             onClick={handleSelectAll}
@@ -466,6 +502,7 @@ function HomePage({ games, currency, onEdit, onDelete, onRefreshMarket, onGamesU
               onRefreshMarket={onRefreshMarket}
               isSelected={selectedGameIds.includes(game.id)}
               onSelect={(isSelected) => handleGameSelection(game.id, isSelected)}
+              selectionMode={selectionMode}
             />
           ))}
         </div>
