@@ -1,17 +1,53 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { CURRENCIES } from '../services/currency';
+import { settingsApi } from '../services/api';
 import './SettingsPage.css';
 
 function SettingsPage({ currentCurrency, onCurrencyChange }) {
   const [selectedCurrency, setSelectedCurrency] = useState(currentCurrency);
+  const [markupPercentage, setMarkupPercentage] = useState(10);
   const [saveMessage, setSaveMessage] = useState('');
+  const [error, setError] = useState('');
 
-  const handleSave = () => {
-    onCurrencyChange(selectedCurrency);
-    setSaveMessage('Settings saved successfully!');
-    setTimeout(() => {
-      setSaveMessage('');
-    }, 2000);
+  // Fetch markup setting on mount
+  useEffect(() => {
+    const fetchMarkup = async () => {
+      try {
+        const response = await settingsApi.getMarkup();
+        setMarkupPercentage(response.data.markup_percentage);
+      } catch (err) {
+        console.error('Failed to fetch markup setting:', err);
+      }
+    };
+    fetchMarkup();
+  }, []);
+
+  const handleSave = async () => {
+    setError('');
+    setSaveMessage('');
+
+    try {
+      // Validate markup percentage
+      const markup = parseFloat(markupPercentage);
+      if (isNaN(markup) || markup < 0 || markup > 100) {
+        setError('Markup percentage must be between 0 and 100');
+        return;
+      }
+
+      // Save currency preference
+      onCurrencyChange(selectedCurrency);
+
+      // Save markup setting
+      await settingsApi.setMarkup(markup);
+
+      setSaveMessage('Settings saved successfully!');
+      setTimeout(() => {
+        setSaveMessage('');
+      }, 2000);
+    } catch (err) {
+      setError('Failed to save settings: ' + (err.response?.data?.error || err.message));
+      console.error('Error saving settings:', err);
+    }
   };
 
   return (
@@ -40,6 +76,29 @@ function SettingsPage({ currentCurrency, onCurrencyChange }) {
               Market values are scraped in USD and will be converted to your selected currency.
             </div>
           </div>
+
+          <div className="form-group">
+            <label className="form-label">Selling Price Markup (%)</label>
+            <input
+              type="number"
+              className="form-input"
+              value={markupPercentage}
+              onChange={(e) => setMarkupPercentage(e.target.value)}
+              min="0"
+              max="100"
+              step="1"
+              placeholder="10"
+            />
+            <div className="help-text">
+              Percentage to add to market value when calculating selling price. For example, 10% means selling price = market value × 1.10.
+            </div>
+          </div>
+
+          {error && (
+            <div className="error-message">
+              {error}
+            </div>
+          )}
 
           {saveMessage && (
             <div className="success-message">

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import { gamesApi } from '../services/api';
+import { gamesApi, settingsApi } from '../services/api';
 import { getCurrency } from '../services/currency';
 import './GameFormPage.css';
 
@@ -144,6 +144,7 @@ function GameFormPage({ currency = 'USD', onSave }) {
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [acquisitionSources, setAcquisitionSources] = useState([]);
+  const [markupMultiplier, setMarkupMultiplier] = useState(1.1); // Default to 10%
 
   useEffect(() => {
     // Fetch acquisition sources for autocomplete
@@ -156,6 +157,19 @@ function GameFormPage({ currency = 'USD', onSave }) {
       }
     };
     fetchAcquisitionSources();
+
+    // Fetch markup setting
+    const fetchMarkup = async () => {
+      try {
+        const response = await settingsApi.getMarkup();
+        const markupPercentage = response.data.markup_percentage;
+        setMarkupMultiplier(1 + (markupPercentage / 100));
+      } catch (err) {
+        console.error('Failed to fetch markup setting:', err);
+        // Keep default of 1.1 (10%)
+      }
+    };
+    fetchMarkup();
 
     if (isEditMode) {
       if (gameFromState) {
@@ -218,7 +232,7 @@ function GameFormPage({ currency = 'USD', onSave }) {
       if (!isNaN(marketVal)) {
         setFormData(prev => ({
           ...prev,
-          selling_value: (marketVal * 1.1).toFixed(2)
+          selling_value: (marketVal * markupMultiplier).toFixed(2)
         }));
       }
     }

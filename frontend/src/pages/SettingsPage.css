@@ -36,6 +36,15 @@
   margin-bottom: 1rem;
 }
 
+.error-message {
+  padding: 0.75rem;
+  background-color: var(--error-color);
+  color: white;
+  border-radius: 4px;
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+}
+
 .about-text {
   color: var(--text-secondary);
   line-height: 1.6;

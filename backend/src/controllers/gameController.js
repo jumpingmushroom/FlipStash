@@ -2,6 +2,7 @@ import { statements } from '../db/index.js';
 import { searchGames as igdbSearch, getGameDetails } from '../services/igdb.js';
 import { getMarketValue, getPriceFromUrl } from '../services/scraper.js';
 import { recordPriceHistory } from '../services/priceHistory.js';
+import { getMarkupMultiplier } from '../services/settings.js';
 import { stringify } from 'csv-stringify/sync';
 import { parse } from 'csv-parse/sync';
 
@@ -332,7 +333,7 @@ export async function refreshMarketValue(req, res) {
       }
 
       if (marketValue !== null) {
-        const sellingValue = Math.round(marketValue * 1.10 * 100) / 100;
+        const sellingValue = Math.round(marketValue * getMarkupMultiplier() * 100) / 100;
 
         statements.updateMarketValue.run(
           marketValue,
@@ -553,7 +554,7 @@ export async function refreshMarketValueSSE(req, res) {
         currency = 'USD';
       }
 
-      const sellingValue = marketValue !== null ? Math.round(marketValue * 1.10 * 100) / 100 : null;
+      const sellingValue = marketValue !== null ? Math.round(marketValue * getMarkupMultiplier() * 100) / 100 : null;
 
       marketData = {
         market_value: marketValue,
@@ -588,7 +589,7 @@ export async function refreshMarketValueSSE(req, res) {
           if (priceData.market_value !== null) {
             marketData = {
               market_value: priceData.market_value,
-              selling_value: Math.round(priceData.market_value * 1.10 * 100) / 100,
+              selling_value: Math.round(priceData.market_value * getMarkupMultiplier() * 100) / 100,
               currency: priceData.currency,
               sources: {
                 pricecharting: source === 'pricecharting' ? priceData.market_value : null,
@@ -1239,7 +1240,7 @@ export async function batchRefreshMarketValues(req, res) {
 
         // Only update if we got valid data
         if (marketValue !== null) {
-          const sellingValue = Math.round(marketValue * 1.10 * 100) / 100;
+          const sellingValue = Math.round(marketValue * getMarkupMultiplier() * 100) / 100;
 
           statements.updateMarketValue.run(
             marketValue,
@@ -1365,7 +1366,7 @@ export async function savePriceSources(req, res) {
 
     // Update market value if we got data
     if (marketValue !== null) {
-      const sellingValue = Math.round(marketValue * 1.10 * 100) / 100;
+      const sellingValue = Math.round(marketValue * getMarkupMultiplier() * 100) / 100;
 
       statements.updateMarketValue.run(
         marketValue,
@@ -1633,7 +1634,7 @@ export async function batchRefreshMarketValuesSSE(req, res) {
 
         // Only update if we got valid data
         if (marketValue !== null) {
-          const sellingValue = Math.round(marketValue * 1.10 * 100) / 100;
+          const sellingValue = Math.round(marketValue * getMarkupMultiplier() * 100) / 100;
 
           statements.updateMarketValue.run(
             marketValue,

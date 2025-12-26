@@ -110,4 +110,10 @@ export const gamesApi = {
   getPriceHistory: (gameId) => api.get(`/games/${gameId}/price-history`)
 };
 
+// Settings API
+export const settingsApi = {
+  getMarkup: () => api.get('/settings/markup'),
+  setMarkup: (markupPercentage) => api.put('/settings/markup', { markup_percentage: markupPercentage })
+};
+
 export default api;

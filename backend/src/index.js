@@ -5,6 +5,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
 import gamesRouter from './routes/games.js';
+import settingsRouter from './routes/settings.js';
 import { initializeAutoRefresh } from './services/autoRefresh.js';
 
 // Load environment variables
@@ -34,6 +35,7 @@ app.use((req, res, next) => {
 
 // Routes
 app.use('/api/games', gamesRouter);
+app.use('/api/settings', settingsRouter);
 
 // Health check
 app.get('/health', (req, res) => {

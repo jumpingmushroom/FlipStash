@@ -147,6 +147,26 @@ db.exec(`
   )
 `);
 
+// Create settings table
+db.exec(`
+  CREATE TABLE IF NOT EXISTS settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL,
+    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+  )
+`);
+
+// Initialize default settings if they don't exist
+try {
+  const markupSetting = db.prepare('SELECT value FROM settings WHERE key = ?').get('markup_percentage');
+  if (!markupSetting) {
+    console.log('Initializing default markup setting: 10%');
+    db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)').run('markup_percentage', '10');
+  }
+} catch (error) {
+  console.error('Error initializing settings:', error.message);
+}
+
 // Create index for faster queries
 db.exec(`
   CREATE INDEX IF NOT EXISTS idx_games_platform ON games(platform);
@@ -275,6 +295,16 @@ export const statements = {
     UPDATE games
     SET condition = ?, updated_at = CURRENT_TIMESTAMP
     WHERE id = ?
+  `),
+
+  // Settings statements
+  getSetting: db.prepare(`
+    SELECT value FROM settings WHERE key = ?
+  `),
+
+  setSetting: db.prepare(`
+    INSERT OR REPLACE INTO settings (key, value, updated_at)
+    VALUES (?, ?, CURRENT_TIMESTAMP)
   `)
 };
 
