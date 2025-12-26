@@ -1127,7 +1127,7 @@ function calculateMedian(numbers) {
  * @param {boolean} returnMultipleResults - If true, return array of search results instead of median
  * @returns {number|null|Array} - Median price in NOK, null if not found, or array of results if returnMultipleResults is true
  */
-async function scrapeFinnNo(gameName, platform, returnMultipleResults = false) {
+export async function scrapeFinnNo(gameName, platform, returnMultipleResults = false) {
   let browser;
   try {
     browser = await createBrowser();

@@ -1,6 +1,6 @@
 import { statements } from '../db/index.js';
 import { searchGames as igdbSearch, getGameDetails } from '../services/igdb.js';
-import { getMarketValue, getPriceFromUrl } from '../services/scraper.js';
+import { getMarketValue, getPriceFromUrl, scrapeFinnNo } from '../services/scraper.js';
 import { recordPriceHistory } from '../services/priceHistory.js';
 import { getMarkupMultiplier } from '../services/settings.js';
 import { stringify } from 'csv-stringify/sync';
@@ -306,12 +306,27 @@ export async function refreshMarketValue(req, res) {
         );
       }
       if (game.finn_url) {
-        fetchPromises.push(
-          getPriceFromUrl(game.finn_url, game.condition).then(data => ({
-            source: 'finnno',
-            data
-          }))
-        );
+        // Check if this is a Finn.no search URL (median) or an individual listing URL
+        if (game.finn_url.includes('/search?')) {
+          // This is a search URL - re-scrape to get median
+          fetchPromises.push(
+            scrapeFinnNo(game.name, game.platform, false).then(medianPrice => ({
+              source: 'finnno',
+              data: {
+                market_value: medianPrice,
+                currency: 'NOK'
+              }
+            }))
+          );
+        } else {
+          // Individual listing URL
+          fetchPromises.push(
+            getPriceFromUrl(game.finn_url, game.condition).then(data => ({
+              source: 'finnno',
+              data
+            }))
+          );
+        }
       }
 
       const results = await Promise.all(fetchPromises);
@@ -545,12 +560,27 @@ export async function refreshMarketValueSSE(req, res) {
         );
       }
       if (game.finn_url) {
-        fetchPromises.push(
-          getPriceFromUrl(game.finn_url, game.condition).then(data => ({
-            source: 'finnno',
-            data
-          }))
-        );
+        // Check if this is a Finn.no search URL (median) or an individual listing URL
+        if (game.finn_url.includes('/search?')) {
+          // This is a search URL - re-scrape to get median
+          fetchPromises.push(
+            scrapeFinnNo(game.name, game.platform, false).then(medianPrice => ({
+              source: 'finnno',
+              data: {
+                market_value: medianPrice,
+                currency: 'NOK'
+              }
+            }))
+          );
+        } else {
+          // Individual listing URL
+          fetchPromises.push(
+            getPriceFromUrl(game.finn_url, game.condition).then(data => ({
+              source: 'finnno',
+              data
+            }))
+          );
+        }
       }
 
       const results = await Promise.all(fetchPromises);
@@ -1375,12 +1405,28 @@ export async function savePriceSources(req, res) {
       );
     }
     if (finnUrl) {
-      fetchPromises.push(
-        getPriceFromUrl(finnUrl, game.condition).then(data => ({
-          source: 'finnno',
-          data
-        }))
-      );
+      // Check if this is a Finn.no search URL (median) or an individual listing URL
+      if (finnUrl.includes('/search?')) {
+        // This is a search URL - re-scrape to get median
+        console.log('Finn.no search URL detected, re-scraping for median...');
+        fetchPromises.push(
+          scrapeFinnNo(game.name, game.platform, false).then(medianPrice => ({
+            source: 'finnno',
+            data: {
+              market_value: medianPrice,
+              currency: 'NOK'
+            }
+          }))
+        );
+      } else {
+        // Individual listing URL
+        fetchPromises.push(
+          getPriceFromUrl(finnUrl, game.condition).then(data => ({
+            source: 'finnno',
+            data
+          }))
+        );
+      }
     }
 
     const results = await Promise.all(fetchPromises);
