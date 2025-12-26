@@ -1149,12 +1149,15 @@ async function scrapeFinnNo(gameName, platform, returnMultipleResults = false) {
 
     console.log(`Finn.no URL: ${finnUrl}`);
 
+    // Use 'domcontentloaded' instead of 'networkidle2' for faster, more reliable page loads
+    // networkidle2 can timeout on pages with continuous background requests
     await page.goto(finnUrl, {
-      waitUntil: 'networkidle2',
-      timeout: 30000
+      waitUntil: 'domcontentloaded',
+      timeout: 60000  // Increased to 60 seconds for slow-loading pages
     });
 
-    await randomDelay(2000, 3000);
+    // Wait for the page to be fully rendered
+    await randomDelay(3000, 4000);  // Slightly longer delay to ensure JS has rendered the ads
 
     // Always parse results properly using the parseFinnNoSearchResults function
     console.log('Parsing Finn.no search results...');
