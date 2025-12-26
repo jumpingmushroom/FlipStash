@@ -6,7 +6,9 @@ import { fileURLToPath } from 'url';
 import fs from 'fs';
 import gamesRouter from './routes/games.js';
 import settingsRouter from './routes/settings.js';
+import exchangeRatesRouter from './routes/exchangeRates.js';
 import { initializeAutoRefresh } from './services/autoRefresh.js';
+import { initializeExchangeRates } from './services/exchangeRates.js';
 
 // Load environment variables
 dotenv.config();
@@ -36,6 +38,7 @@ app.use((req, res, next) => {
 // Routes
 app.use('/api/games', gamesRouter);
 app.use('/api/settings', settingsRouter);
+app.use('/api/exchange-rates', exchangeRatesRouter);
 
 // Health check
 app.get('/health', (req, res) => {
@@ -49,9 +52,12 @@ app.use((err, req, res, next) => {
 });
 
 // Start server
-app.listen(PORT, '0.0.0.0', () => {
+app.listen(PORT, '0.0.0.0', async () => {
   console.log(`FlipStash backend running on port ${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+
+  // Initialize exchange rates
+  await initializeExchangeRates();
 
   // Initialize automated market value refresh
   initializeAutoRefresh();

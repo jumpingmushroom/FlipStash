@@ -9,7 +9,7 @@ import PriceTrackerPage from './pages/PriceTrackerPage';
 import ToolsPage from './pages/ToolsPage';
 import SettingsPage from './pages/SettingsPage';
 import { gamesApi } from './services/api';
-import { loadCurrencyPreference, saveCurrencyPreference, convertCurrency } from './services/currency';
+import { loadCurrencyPreference, saveCurrencyPreference, convertCurrency, fetchLiveExchangeRates } from './services/currency';
 import './App.css';
 
 function App() {
@@ -24,9 +24,10 @@ function App() {
     soldGames: 0
   });
 
-  // Load games on mount
+  // Load games and exchange rates on mount
   useEffect(() => {
     loadGames();
+    fetchLiveExchangeRates();
   }, []);
 
   // Calculate stats whenever games change
