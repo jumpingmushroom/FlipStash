@@ -929,18 +929,45 @@ async function parseFinnNoSearchResults(page) {
   return await page.evaluate(() => {
     const results = [];
 
-    // Try to find ad containers
+    // Try to find ad containers - expanded selector list to handle Finn.no changes
     const selectors = [
       'article[data-testid*="ad"]',
       'article[class*="Ad"]',
+      'article',  // Try all articles if specific ones don't work
       'div[class*="Result"]',
-      '.ads__unit'
+      'div[data-testid*="result"]',
+      '.ads__unit',
+      '[class*="SearchResult"]',
+      '[data-testid*="search-result"]'
     ];
 
     let adElements = [];
     for (const selector of selectors) {
       adElements = document.querySelectorAll(selector);
-      if (adElements.length > 0) break;
+      console.log(`Trying selector "${selector}": found ${adElements.length} elements`);
+
+      // Filter to only elements that contain both a link and a price
+      const validElements = Array.from(adElements).filter(el => {
+        const hasLink = el.querySelector('a[href*="/recommerce/"]') || el.querySelector('a[href]');
+        const hasPrice = el.textContent.match(/\d+\s*kr/i);
+        return hasLink && hasPrice;
+      });
+
+      if (validElements.length > 0) {
+        console.log(`Found ${validElements.length} valid ad elements with selector "${selector}"`);
+        adElements = validElements;
+        break;
+      }
+    }
+
+    if (adElements.length === 0) {
+      console.log('No ad elements found with any selector');
+      // Debug: log the page structure
+      console.log('Page title:', document.title);
+      console.log('Body classes:', document.body?.className);
+      const allArticles = document.querySelectorAll('article');
+      console.log('Total articles on page:', allArticles.length);
+      return [];
     }
 
     for (const ad of adElements) {
@@ -952,7 +979,9 @@ async function parseFinnNoSearchResults(page) {
           '[class*="heading"]',
           '[class*="title"]',
           '[class*="Title"]',
-          'a[class*="link"]'
+          '[data-testid*="title"]',
+          'a[class*="link"]',
+          'a[href]'  // Fallback to any link
         ];
 
         for (const selector of titleSelectors) {
@@ -963,36 +992,41 @@ async function parseFinnNoSearchResults(page) {
           }
         }
 
-        // Get price
+        // Get price - more comprehensive search
         let price = null;
         const priceSelectors = [
           '[class*="price"]',
           '[class*="Price"]',
-          '[data-testid*="price"]'
+          '[data-testid*="price"]',
+          'span', // Sometimes prices are in plain spans
+          'div'   // Or plain divs
         ];
 
         for (const selector of priceSelectors) {
-          const priceEl = ad.querySelector(selector);
-          if (priceEl) {
+          const priceElements = ad.querySelectorAll(selector);
+          for (const priceEl of priceElements) {
             const text = priceEl.textContent.trim();
             const match = text.match(/([0-9\s]+)\s*kr/i);
             if (match) {
               price = parseFloat(match[1].replace(/\s/g, ''));
-              break;
+              if (price > 0 && price < 100000) {
+                break;
+              }
             }
           }
+          if (price) break;
         }
 
         // Get URL
         let url = null;
-        const linkEl = ad.querySelector('a[href]');
+        const linkEl = ad.querySelector('a[href*="/recommerce/"]') || ad.querySelector('a[href]');
         if (linkEl) {
           url = linkEl.href;
         }
 
         // Only add if we have at least title and price
         if (title && price && price > 0 && price < 100000) {
-          // Finn.no titles are usually already descriptive, so just use them as-is
+          console.log(`Found listing: "${title}" - ${price} kr`);
           results.push({
             name: title,
             price: price,
@@ -1004,6 +1038,7 @@ async function parseFinnNoSearchResults(page) {
       }
     }
 
+    console.log(`Total valid listings parsed: ${results.length}`);
     return results;
   });
 }
