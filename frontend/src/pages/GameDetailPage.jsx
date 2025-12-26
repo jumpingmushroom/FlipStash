@@ -6,7 +6,7 @@ import PriceChart from '../components/PriceChart';
 import PriceSelectionModal from '../components/PriceSelectionModal';
 import './GameDetailPage.css';
 
-function GameDetailPage() {
+function GameDetailPage({ onGamesUpdate }) {
   const { id } = useParams();
   const navigate = useNavigate();
   const [game, setGame] = useState(null);
@@ -65,6 +65,10 @@ function GameDetailPage() {
 
     try {
       await gamesApi.delete(id);
+      // Refresh the games list before navigating
+      if (onGamesUpdate) {
+        await onGamesUpdate();
+      }
       navigate('/');
     } catch (err) {
       alert('Failed to delete game');
