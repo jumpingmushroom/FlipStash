@@ -1,5 +1,5 @@
 import express from 'express';
-import { getMarkupPercentage, setMarkupPercentage } from '../services/settings.js';
+import { getMarkupPercentage, setMarkupPercentage, recalculateAllSellingPrices } from '../services/settings.js';
 
 const router = express.Router();
 
@@ -19,7 +19,7 @@ router.get('/markup', (req, res) => {
 
 /**
  * PUT /api/settings/markup
- * Update the markup percentage
+ * Update the markup percentage and recalculate all selling prices
  * Body: { markup_percentage: number }
  */
 router.put('/markup', (req, res) => {
@@ -30,11 +30,16 @@ router.put('/markup', (req, res) => {
       return res.status(400).json({ error: 'markup_percentage is required' });
     }
 
+    // Set the new markup percentage
     setMarkupPercentage(markup_percentage);
+
+    // Recalculate all selling prices with the new markup
+    const { updatedCount } = recalculateAllSellingPrices();
 
     res.json({
       message: 'Markup percentage updated successfully',
-      markup_percentage: parseFloat(markup_percentage)
+      markup_percentage: parseFloat(markup_percentage),
+      games_updated: updatedCount
     });
   } catch (error) {
     console.error('Error setting markup:', error);

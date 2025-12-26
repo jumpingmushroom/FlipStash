@@ -1,4 +1,5 @@
 import { statements } from '../db/index.js';
+import db from '../db/index.js';
 
 /**
  * Get a setting value by key
@@ -61,4 +62,38 @@ export const setMarkupPercentage = (percentage) => {
     throw new Error('Markup percentage must be between 0 and 100');
   }
   return setSetting('markup_percentage', numPercentage.toString());
+};
+
+/**
+ * Recalculate all selling values based on current markup percentage
+ * Updates all games that have a market_value
+ * @returns {Object} - Object with count of updated games
+ */
+export const recalculateAllSellingPrices = () => {
+  try {
+    const markupMultiplier = getMarkupMultiplier();
+
+    // Get all games that have a market_value
+    const games = db.prepare('SELECT id, market_value, market_value_currency FROM games WHERE market_value IS NOT NULL').all();
+
+    let updatedCount = 0;
+    const updateStmt = db.prepare(`
+      UPDATE games
+      SET selling_value = ?,
+          selling_value_currency = ?,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `);
+
+    for (const game of games) {
+      const sellingValue = Math.round(game.market_value * markupMultiplier * 100) / 100;
+      updateStmt.run(sellingValue, game.market_value_currency, game.id);
+      updatedCount++;
+    }
+
+    return { updatedCount };
+  } catch (error) {
+    console.error('Error recalculating selling prices:', error.message);
+    throw error;
+  }
 };

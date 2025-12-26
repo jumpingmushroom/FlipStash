@@ -38,12 +38,19 @@ function SettingsPage({ currentCurrency, onCurrencyChange }) {
       onCurrencyChange(selectedCurrency);
 
       // Save markup setting
-      await settingsApi.setMarkup(markup);
+      const response = await settingsApi.setMarkup(markup);
 
-      setSaveMessage('Settings saved successfully!');
+      // Show success message with number of games updated
+      const gamesUpdated = response.data.games_updated || 0;
+      if (gamesUpdated > 0) {
+        setSaveMessage(`Settings saved successfully! Updated selling prices for ${gamesUpdated} game${gamesUpdated === 1 ? '' : 's'}.`);
+      } else {
+        setSaveMessage('Settings saved successfully!');
+      }
+
       setTimeout(() => {
         setSaveMessage('');
-      }, 2000);
+      }, 3000);
     } catch (err) {
       setError('Failed to save settings: ' + (err.response?.data?.error || err.message));
       console.error('Error saving settings:', err);
