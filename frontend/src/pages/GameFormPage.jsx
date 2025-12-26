@@ -32,6 +32,7 @@ const PLATFORMS = [
   'Sega Genesis',
   'Sega Dreamcast',
   'Sega Saturn',
+  'Sega Master System',
   'PC',
   'Other'
 ];
@@ -90,6 +91,9 @@ const normalizePlatform = (igdbPlatform) => {
     'Sega Dreamcast': 'Sega Dreamcast',
     'Sega Saturn': 'Sega Saturn',
     'Saturn': 'Sega Saturn',
+    'Sega Master System': 'Sega Master System',
+    'Master System': 'Sega Master System',
+    'SMS': 'Sega Master System',
     'PC (Microsoft Windows)': 'PC',
     'PC': 'PC',
     'Windows': 'PC',

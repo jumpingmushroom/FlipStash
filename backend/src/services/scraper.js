@@ -80,6 +80,7 @@ function getPriceChartingConsoleUrl(platform, region) {
     if (platformLower.includes('sega genesis') || platformLower.includes('mega drive')) return '/console/pal-sega-genesis';
     if (platformLower.includes('dreamcast')) return '/console/pal-dreamcast';
     if (platformLower.includes('saturn')) return '/console/pal-saturn';
+    if (platformLower.includes('master system') || platformLower.includes('sega master system')) return '/console/pal-sega-master-system';
   }
 
   // Japanese versions
@@ -96,6 +97,7 @@ function getPriceChartingConsoleUrl(platform, region) {
     if (platformLower.includes('nintendo 64') || platformLower === 'n64') return '/console/jp-nintendo-64';
     if (platformLower.includes('super famicom') || (platformLower.includes('snes') || platformLower.includes('super nintendo'))) return '/console/jp-super-famicom';
     if (platformLower.includes('famicom') || (platformLower.includes('nes') && !platformLower.includes('snes'))) return '/console/jp-famicom';
+    if (platformLower.includes('master system') || platformLower.includes('sega master system')) return '/console/jp-sega-master-system';
   }
 
   // NTSC/US versions and region-neutral platforms
@@ -125,6 +127,7 @@ function getPriceChartingConsoleUrl(platform, region) {
   if (platformLower.includes('sega genesis') || platformLower.includes('mega drive')) return '/console/sega-genesis';
   if (platformLower.includes('dreamcast')) return '/console/dreamcast';
   if (platformLower.includes('saturn')) return '/console/sega-saturn';
+  if (platformLower.includes('master system') || platformLower.includes('sega master system')) return '/console/sega-master-system';
   if (platformLower === 'pc' || platformLower.includes('windows') || platformLower.includes('mac') || platformLower.includes('linux')) return '/console/pc-games';
 
   // Return null if no mapping found - will trigger fallback to general search
