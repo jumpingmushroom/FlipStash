@@ -1166,8 +1166,37 @@ body {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
+/* Selection mode styles */
+.game-list-item.selection-mode {
+  cursor: pointer;
+}
+
+.game-list-item.selection-mode:hover {
+  border-color: var(--primary-color);
+  box-shadow: 0 2px 12px rgba(124, 77, 255, 0.3);
+}
+
+.game-list-item.selected {
+  background: linear-gradient(135deg, rgba(124, 77, 255, 0.1), rgba(0, 199, 255, 0.1));
+  border-color: var(--primary-color);
+}
+
+.game-list-item.selected:hover {
+  border-color: var(--secondary-color);
+  box-shadow: 0 2px 12px rgba(0, 199, 255, 0.3);
+}
+
 .game-list-checkbox {
   flex-shrink: 0;
+  padding: 0.5rem;
+  margin: -0.5rem;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.game-list-checkbox:hover {
+  background-color: var(--surface-hover);
 }
 
 .game-list-checkbox input {
