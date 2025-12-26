@@ -56,6 +56,9 @@ const PLATFORM_ALIASES = {
   'dreamcast': 'Dreamcast',
   'saturn': 'Sega Saturn',
   'game gear': 'Sega Game Gear',
+  'master system': 'Sega Master System',
+  'sega master system': 'Sega Master System',
+  'sms': 'Sega Master System',
 
   // PC variants
   'pc': 'PC (Microsoft Windows)',
