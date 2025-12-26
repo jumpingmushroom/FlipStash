@@ -1009,11 +1009,88 @@ async function parseFinnNoSearchResults(page) {
 }
 
 /**
+ * Filter out bundle/collection listings from Finn.no results
+ * @param {Array} results - Array of search results with name and price
+ * @param {string} gameName - The specific game name we're looking for
+ * @returns {Array} - Filtered results containing only individual game listings
+ */
+function filterBundleListings(results, gameName) {
+  // Keywords that indicate a bundle/collection listing
+  const bundleKeywords = [
+    'til salgs',
+    'til sals',
+    'pakke',
+    'bundle',
+    'samling',
+    'collection',
+    'spill ',
+    ' spill',
+    'flere',
+    'mixed',
+    'diverse'
+  ];
+
+  return results.filter(result => {
+    const titleLower = result.name.toLowerCase();
+
+    // Check if title contains bundle keywords
+    for (const keyword of bundleKeywords) {
+      if (titleLower.includes(keyword)) {
+        console.log(`Filtering out bundle listing: "${result.name}"`);
+        return false;
+      }
+    }
+
+    // Check if the listing title is suspiciously short (likely "Til salgs" or similar)
+    if (result.name.length < 10) {
+      console.log(`Filtering out short title: "${result.name}"`);
+      return false;
+    }
+
+    // Check if the title contains the game name (fuzzy match)
+    // Split game name into significant words (remove "the", "of", etc.)
+    const gameWords = gameName.toLowerCase()
+      .split(/\s+/)
+      .filter(word => word.length > 2 && !['the', 'of', 'and', 'for', 'with'].includes(word));
+
+    // At least one significant word from the game name should be in the title
+    const hasGameName = gameWords.some(word => titleLower.includes(word));
+
+    if (!hasGameName && gameWords.length > 0) {
+      console.log(`Filtering out unrelated listing: "${result.name}"`);
+      return false;
+    }
+
+    return true;
+  });
+}
+
+/**
+ * Calculate median from an array of numbers
+ * @param {Array} numbers - Array of numbers
+ * @returns {number} - Median value
+ */
+function calculateMedian(numbers) {
+  if (numbers.length === 0) return 0;
+
+  const sorted = [...numbers].sort((a, b) => a - b);
+  const middle = Math.floor(sorted.length / 2);
+
+  if (sorted.length % 2 === 0) {
+    // Even number of elements - average the two middle values
+    return (sorted[middle - 1] + sorted[middle]) / 2;
+  } else {
+    // Odd number of elements - return the middle value
+    return sorted[middle];
+  }
+}
+
+/**
  * Scrape price from Finn.no (Norwegian marketplace)
  * @param {string} gameName - Name of the game
  * @param {string} platform - Gaming platform
- * @param {boolean} returnMultipleResults - If true, return array of search results instead of average
- * @returns {number|null|Array} - Average price in NOK, null if not found, or array of results if returnMultipleResults is true
+ * @param {boolean} returnMultipleResults - If true, return array of search results instead of median
+ * @returns {number|null|Array} - Median price in NOK, null if not found, or array of results if returnMultipleResults is true
  */
 async function scrapeFinnNo(gameName, platform, returnMultipleResults = false) {
   let browser;
@@ -1044,58 +1121,39 @@ async function scrapeFinnNo(gameName, platform, returnMultipleResults = false) {
 
     await randomDelay(2000, 3000);
 
-    // If returnMultipleResults is true, parse and return all search results
+    // Always parse results properly using the parseFinnNoSearchResults function
+    console.log('Parsing Finn.no search results...');
+    const allResults = await parseFinnNoSearchResults(page);
+    console.log(`Finn.no found ${allResults.length} total listings`);
+
+    // Filter out bundles and collections
+    const filteredResults = filterBundleListings(allResults, gameName);
+    console.log(`After filtering: ${filteredResults.length} individual game listings`);
+
+    await browser.close();
+
+    // If returnMultipleResults is true, return filtered results for user selection
     if (returnMultipleResults) {
-      console.log('Returning multiple Finn.no search results for user selection');
-      const results = await parseFinnNoSearchResults(page);
-      await browser.close();
-      return results;
+      console.log('Returning filtered Finn.no search results for user selection');
+      return filteredResults;
     }
 
-    // Extract prices from search results
-    const prices = await page.evaluate(() => {
-      const prices = [];
+    // Extract prices from filtered results
+    const prices = filteredResults
+      .map(result => result.price)
+      .filter(price => price !== null && price > 0);
 
-      // Try multiple selectors for price elements
-      const selectors = [
-        '[class*="price"]',
-        '[data-testid*="price"]',
-        '.ads__unit__content__price',
-        '.text-18',
-        '.text-20',
-        'span[class*="Price"]'
-      ];
-
-      for (const selector of selectors) {
-        const priceElements = document.querySelectorAll(selector);
-
-        for (const element of priceElements) {
-          const text = element.textContent.trim();
-          // Match Norwegian number format (spaces as thousand separators)
-          const match = text.match(/([0-9\s]+)\s*kr/i);
-
-          if (match) {
-            const price = parseFloat(match[1].replace(/\s/g, ''));
-            if (price > 0 && price < 100000) { // Sanity check
-              prices.push(price);
-              console.log(`Found price: ${price} kr`);
-            }
-          }
-        }
-      }
-
-      return prices;
-    });
-
-    console.log(`Finn.no found ${prices.length} prices:`, prices);
+    console.log(`Finn.no prices after filtering:`, prices);
 
     if (prices.length === 0) {
       return null;
     }
 
-    // Calculate average price
-    const average = prices.reduce((sum, price) => sum + price, 0) / prices.length;
-    return Math.round(average);
+    // Calculate median price (more robust than average)
+    const median = calculateMedian(prices);
+    console.log(`Finn.no median price: ${median} kr (from ${prices.length} listings)`);
+
+    return Math.round(median);
   } catch (error) {
     console.error('Finn.no scraping error:', error.message);
     return null;
