@@ -166,7 +166,7 @@ function App() {
           />
           <Route
             path="/price-tracker"
-            element={<PriceTrackerPage />}
+            element={<PriceTrackerPage currency={currency} />}
           />
           <Route
             path="/tools"
