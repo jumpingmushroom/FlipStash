@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import { convertCurrency, formatCurrency } from '../services/currency';
 import './Layout.css';
@@ -18,16 +17,11 @@ function Layout({ children, stats, currency }) {
       <div className="app-container">
         <header className="header">
           <div className="header-content">
-            <div className="header-left">
-              <button className="hamburger-menu" onClick={toggleSidebar}>
-                <span></span>
-                <span></span>
-                <span></span>
-              </button>
-              <Link to="/" className="logo-link">
-                <h1>🎮 FlipStash</h1>
-              </Link>
-            </div>
+            <button className="hamburger-menu" onClick={toggleSidebar}>
+              <span></span>
+              <span></span>
+              <span></span>
+            </button>
             {stats && (
               <div className="header-stats">
                 <div className="stat-item">

@@ -15,15 +15,9 @@
 
 .header-content {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
   gap: 2rem;
-}
-
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
 }
 
 .hamburger-menu {
@@ -36,6 +30,7 @@
   border: none;
   cursor: pointer;
   padding: 0;
+  margin-right: auto;
 }
 
 .hamburger-menu span {
@@ -48,16 +43,6 @@
 
 .hamburger-menu:hover span {
   background-color: var(--primary-color);
-}
-
-.logo-link {
-  text-decoration: none;
-}
-
-.logo-link h1 {
-  font-size: 1.8rem;
-  color: var(--primary-color);
-  margin: 0;
 }
 
 .header-stats {

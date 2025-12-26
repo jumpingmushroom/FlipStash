@@ -12,6 +12,11 @@ function Sidebar({ isOpen, onToggle }) {
   return (
     <>
       <aside className={`sidebar ${isOpen ? 'open' : ''}`}>
+        <div className="sidebar-header">
+          <Link to="/" className="sidebar-logo">
+            <h1>🎮 FlipStash</h1>
+          </Link>
+        </div>
         <nav className="sidebar-nav">
           <Link to="/" className={`sidebar-link ${isActive('/')}`}>
             <span className="sidebar-icon">🏠</span>
