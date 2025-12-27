@@ -616,6 +616,25 @@
   flex-wrap: wrap;
 }
 
+/* Sortable Column Headers */
+.game-list-header .sortable {
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.game-list-header .sortable:hover {
+  color: var(--primary-color);
+  background-color: rgba(99, 102, 241, 0.1);
+  border-radius: 4px;
+}
+
+.game-list-header .sortable.active {
+  color: var(--primary-color);
+  font-weight: 700;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .filters-panel {
