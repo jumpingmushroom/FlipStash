@@ -1532,6 +1532,9 @@ export async function resetMarketValue(req, res) {
       return res.status(404).json({ error: 'Game not found' });
     }
 
+    // Delete all price history entries for this game
+    statements.deletePriceHistory.run(req.params.id);
+
     // Reset all market value related fields
     statements.resetMarketValue.run(req.params.id);
 

@@ -268,6 +268,10 @@ export const statements = {
     VALUES (?, ?, ?)
   `),
 
+  deletePriceHistory: db.prepare(`
+    DELETE FROM price_history WHERE game_id = ?
+  `),
+
   getPriceHistory: db.prepare(`
     SELECT * FROM price_history
     WHERE game_id = ?
