@@ -56,8 +56,14 @@
   border-bottom: 1px solid var(--border-color);
 }
 
+.dashboard-row {
+  cursor: pointer;
+  transition: background-color 0.2s, box-shadow 0.2s;
+}
+
 .dashboard-row:hover {
   background-color: var(--surface-hover);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .game-info-cell {
@@ -95,16 +101,6 @@
 .game-name {
   color: var(--text-primary);
   font-weight: 500;
-}
-
-.game-name-clickable {
-  cursor: pointer;
-  transition: color 0.2s ease;
-}
-
-.game-name-clickable:hover {
-  color: var(--primary-color);
-  text-decoration: underline;
 }
 
 .game-platform {
