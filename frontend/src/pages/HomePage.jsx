@@ -13,6 +13,8 @@ function HomePage({ games, currency, onEdit, onDelete, onRefreshMarket, onGamesU
   const [postedFilter, setPostedFilter] = useState('');
   const [acquisitionSourceFilter, setAcquisitionSourceFilter] = useState('');
   const [sortBy, setSortBy] = useState('created_at');
+  const [sortColumn, setSortColumn] = useState(null);
+  const [sortDirection, setSortDirection] = useState('asc');
   const [selectedGameIds, setSelectedGameIds] = useState(() => {
     // Restore selections from sessionStorage
     const saved = sessionStorage.getItem('flipstash_selected_games');
@@ -42,7 +44,7 @@ function HomePage({ games, currency, onEdit, onDelete, onRefreshMarket, onGamesU
 
   useEffect(() => {
     applyFiltersAndSort();
-  }, [games, searchQuery, platformFilter, hideSold, postedFilter, acquisitionSourceFilter, sortBy]);
+  }, [games, searchQuery, platformFilter, hideSold, postedFilter, acquisitionSourceFilter, sortBy, sortColumn, sortDirection]);
 
   // Persist selected game IDs to sessionStorage
   useEffect(() => {
@@ -91,18 +93,46 @@ function HomePage({ games, currency, onEdit, onDelete, onRefreshMarket, onGamesU
       filtered = filtered.filter(game => game.acquisition_source === acquisitionSourceFilter);
     }
 
-    // Sort
+    // Sort - prioritize column sorting over dropdown sorting
     filtered.sort((a, b) => {
-      switch (sortBy) {
-        case 'name':
-          return a.name.localeCompare(b.name);
-        case 'purchase_value':
-          return (b.purchase_value || 0) - (a.purchase_value || 0);
-        case 'market_value':
-          return (b.market_value || 0) - (a.market_value || 0);
-        case 'created_at':
-        default:
-          return new Date(b.created_at) - new Date(a.created_at);
+      let comparison = 0;
+
+      if (sortColumn) {
+        // Column header sorting takes priority
+        switch (sortColumn) {
+          case 'name':
+            comparison = a.name.localeCompare(b.name);
+            break;
+          case 'condition':
+            const condA = a.condition || '';
+            const condB = b.condition || '';
+            comparison = condA.localeCompare(condB);
+            break;
+          case 'purchase_value':
+            comparison = (a.purchase_value || 0) - (b.purchase_value || 0);
+            break;
+          case 'market_value':
+            comparison = (a.market_value || 0) - (b.market_value || 0);
+            break;
+          default:
+            comparison = 0;
+        }
+
+        // Apply sort direction
+        return sortDirection === 'asc' ? comparison : -comparison;
+      } else {
+        // Fallback to dropdown sorting
+        switch (sortBy) {
+          case 'name':
+            return a.name.localeCompare(b.name);
+          case 'purchase_value':
+            return (b.purchase_value || 0) - (a.purchase_value || 0);
+          case 'market_value':
+            return (b.market_value || 0) - (a.market_value || 0);
+          case 'created_at':
+          default:
+            return new Date(b.created_at) - new Date(a.created_at);
+        }
       }
     });
 
@@ -115,6 +145,22 @@ function HomePage({ games, currency, onEdit, onDelete, onRefreshMarket, onGamesU
 
   const handleEditGame = (game) => {
     navigate(`/edit-game/${game.id}`, { state: { game } });
+  };
+
+  const handleColumnSort = (column) => {
+    if (sortColumn === column) {
+      // Toggle direction if clicking the same column
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      // New column, default to ascending
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
+
+  const getSortIndicator = (column) => {
+    if (sortColumn !== column) return null;
+    return sortDirection === 'asc' ? ' ▲' : ' ▼';
   };
 
   const handleGameSelection = (gameId, isSelected) => {
@@ -495,10 +541,30 @@ function HomePage({ games, currency, onEdit, onDelete, onRefreshMarket, onGamesU
           <div className="game-list-header">
             <div className="game-list-header-checkbox"></div>
             <div className="game-list-header-cover"></div>
-            <div className="game-list-header-info">Game</div>
-            <div className="game-list-header-condition">Condition</div>
-            <div className="game-list-header-value">Purchase</div>
-            <div className="game-list-header-value">Market</div>
+            <div
+              className={`game-list-header-info sortable ${sortColumn === 'name' ? 'active' : ''}`}
+              onClick={() => handleColumnSort('name')}
+            >
+              Game{getSortIndicator('name')}
+            </div>
+            <div
+              className={`game-list-header-condition sortable ${sortColumn === 'condition' ? 'active' : ''}`}
+              onClick={() => handleColumnSort('condition')}
+            >
+              Condition{getSortIndicator('condition')}
+            </div>
+            <div
+              className={`game-list-header-value sortable ${sortColumn === 'purchase_value' ? 'active' : ''}`}
+              onClick={() => handleColumnSort('purchase_value')}
+            >
+              Purchase{getSortIndicator('purchase_value')}
+            </div>
+            <div
+              className={`game-list-header-value sortable ${sortColumn === 'market_value' ? 'active' : ''}`}
+              onClick={() => handleColumnSort('market_value')}
+            >
+              Market{getSortIndicator('market_value')}
+            </div>
             <div className="game-list-header-badges">Badges</div>
             <div className="game-list-header-actions">Actions</div>
           </div>
