@@ -10,8 +10,8 @@ import './PriceSelectionModal.css';
  * @param {Function} props.onClose - Callback when modal is closed
  */
 export default function PriceSelectionModal({ results, gamePlatform, onSelect, onClose }) {
-  const [selectedPriceCharting, setSelectedPriceCharting] = useState(null);
-  const [selectedFinn, setSelectedFinn] = useState(null);
+  // Single selection state: {source: 'pricecharting'|'finn', url: string}
+  const [selectedSource, setSelectedSource] = useState(null);
 
   // Filter results by platform if gamePlatform is provided
   const filterByPlatform = (resultsList) => {
@@ -85,13 +85,18 @@ export default function PriceSelectionModal({ results, gamePlatform, onSelect, o
   const hasFinnResults = filteredFinnNo && filteredFinnNo.length > 0;
 
   const handleConfirm = () => {
-    // At least one selection is required
-    if (!selectedPriceCharting && !selectedFinn) {
-      alert('Please select at least one price source');
+    // A selection is required
+    if (!selectedSource) {
+      alert('Please select a price source');
       return;
     }
 
-    onSelect(selectedPriceCharting, selectedFinn);
+    // Pass only the selected source, null for the other
+    if (selectedSource.source === 'pricecharting') {
+      onSelect(selectedSource.url, null);
+    } else {
+      onSelect(null, selectedSource.url);
+    }
   };
 
   const handleSkip = () => {
@@ -108,7 +113,7 @@ export default function PriceSelectionModal({ results, gamePlatform, onSelect, o
 
         <div className="modal-body">
           <p className="modal-description">
-            Select the correct game listing from the search results below. You can choose one or both sources.
+            Select the correct game listing from the search results below. Choose one source.
           </p>
 
           {/* PriceCharting Results */}
@@ -121,8 +126,8 @@ export default function PriceSelectionModal({ results, gamePlatform, onSelect, o
                 {filteredPriceCharting.map((result, index) => (
                   <div
                     key={index}
-                    className={`result-card ${selectedPriceCharting === result.url ? 'selected' : ''}`}
-                    onClick={() => setSelectedPriceCharting(result.url)}
+                    className={`result-card ${selectedSource?.source === 'pricecharting' && selectedSource?.url === result.url ? 'selected' : ''}`}
+                    onClick={() => setSelectedSource({ source: 'pricecharting', url: result.url })}
                   >
                     <div className="result-info">
                       <div className="result-name">{result.name}</div>
@@ -149,8 +154,8 @@ export default function PriceSelectionModal({ results, gamePlatform, onSelect, o
                 {filteredFinnNo.map((result, index) => (
                   <div
                     key={index}
-                    className={`result-card ${selectedFinn === result.url ? 'selected' : ''}`}
-                    onClick={() => setSelectedFinn(result.url)}
+                    className={`result-card ${selectedSource?.source === 'finn' && selectedSource?.url === result.url ? 'selected' : ''}`}
+                    onClick={() => setSelectedSource({ source: 'finn', url: result.url })}
                   >
                     <div className="result-info">
                       <div className="result-name">{result.name}</div>
@@ -175,9 +180,9 @@ export default function PriceSelectionModal({ results, gamePlatform, onSelect, o
           <button
             className="btn btn-primary"
             onClick={handleConfirm}
-            disabled={!selectedPriceCharting && !selectedFinn}
+            disabled={!selectedSource}
           >
-            Save Selected Sources
+            Save Selected Source
           </button>
         </div>
       </div>
