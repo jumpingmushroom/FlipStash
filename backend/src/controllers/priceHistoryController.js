@@ -73,6 +73,7 @@ export async function getRefreshDashboard(req, res) {
         name: game.name,
         platform: game.platform,
         market_value: game.market_value,
+        market_value_currency: game.market_value_currency,
         last_refresh_at: game.last_refresh_at,
         first_historical_value: game.first_historical_value,
         first_history_recorded_at: game.first_history_recorded_at,
