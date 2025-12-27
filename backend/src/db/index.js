@@ -237,6 +237,20 @@ export const statements = {
     WHERE id = ?
   `),
 
+  resetMarketValue: db.prepare(`
+    UPDATE games SET
+      market_value = NULL,
+      selling_value = NULL,
+      market_value_currency = 'USD',
+      selling_value_currency = 'USD',
+      price_source = NULL,
+      pricecharting_url = NULL,
+      finn_url = NULL,
+      last_refresh_at = NULL,
+      updated_at = CURRENT_TIMESTAMP
+    WHERE id = ?
+  `),
+
   updatePriceUrls: db.prepare(`
     UPDATE games SET
       pricecharting_url = ?, finn_url = ?,

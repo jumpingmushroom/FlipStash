@@ -330,58 +330,61 @@ function GameFormPage({ currency = 'USD', onSave }) {
 
       {error && <div className="error">{error}</div>}
 
-      {!isEditMode && (
-        <div className="igdb-search-section">
-          <h2>Search IGDB</h2>
-          <div className="form-group">
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <input
-                type="text"
-                className="form-input"
-                value={igdbQuery}
-                onChange={(e) => setIgdbQuery(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && searchIGDB()}
-                placeholder="Search for a game..."
-              />
-              <button
-                type="button"
-                onClick={searchIGDB}
-                disabled={isSearching}
-                className="btn btn-primary"
-              >
-                {isSearching ? 'Searching...' : 'Search'}
-              </button>
-            </div>
+      <div className="igdb-search-section">
+        <h2>{isEditMode ? 'Re-search IGDB' : 'Search IGDB'}</h2>
+        {isEditMode && (
+          <p style={{ color: '#a78bfa', fontSize: '0.9rem', marginBottom: '1rem' }}>
+            ⚠️ Searching will replace the current IGDB metadata (cover art, genres, etc.)
+          </p>
+        )}
+        <div className="form-group">
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <input
+              type="text"
+              className="form-input"
+              value={igdbQuery}
+              onChange={(e) => setIgdbQuery(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && searchIGDB()}
+              placeholder="Search for a game..."
+            />
+            <button
+              type="button"
+              onClick={searchIGDB}
+              disabled={isSearching}
+              className="btn btn-primary"
+            >
+              {isSearching ? 'Searching...' : 'Search'}
+            </button>
           </div>
-
-          {igdbResults.length > 0 && (
-            <div className="igdb-results">
-              {igdbResults.map(result => (
-                <div
-                  key={result.id}
-                  className="igdb-result"
-                  onClick={() => selectIGDBGame(result)}
-                >
-                  {result.coverUrl ? (
-                    <img src={result.coverUrl} alt={result.name} className="igdb-result-cover" />
-                  ) : (
-                    <div className="igdb-result-cover" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      🎮
-                    </div>
-                  )}
-                  <div className="igdb-result-info">
-                    <div className="igdb-result-name">{result.name}</div>
-                    <div className="igdb-result-platforms">{result.platforms}</div>
-                    {result.releaseDate && (
-                      <div className="igdb-result-platforms">{result.releaseDate}</div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
-      )}
+
+        {igdbResults.length > 0 && (
+          <div className="igdb-results">
+            {igdbResults.map(result => (
+              <div
+                key={result.id}
+                className="igdb-result"
+                onClick={() => selectIGDBGame(result)}
+              >
+                {result.coverUrl ? (
+                  <img src={result.coverUrl} alt={result.name} className="igdb-result-cover" />
+                ) : (
+                  <div className="igdb-result-cover" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    🎮
+                  </div>
+                )}
+                <div className="igdb-result-info">
+                  <div className="igdb-result-name">{result.name}</div>
+                  <div className="igdb-result-platforms">{result.platforms}</div>
+                  {result.releaseDate && (
+                    <div className="igdb-result-platforms">{result.releaseDate}</div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       <form onSubmit={handleSubmit} className="game-form">
         <div className="form-group">
@@ -535,6 +538,7 @@ function GameFormPage({ currency = 'USD', onSave }) {
             <option value="">Select condition</option>
             <option value="Sealed">Sealed</option>
             <option value="CIB (Complete in Box)">CIB (Complete in Box)</option>
+            <option value="Missing Manual">Missing Manual</option>
             <option value="Loose">Loose</option>
             <option value="Box Only">Box Only</option>
             <option value="Manual Only">Manual Only</option>
