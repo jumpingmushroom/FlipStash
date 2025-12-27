@@ -203,7 +203,11 @@ export default function PriceTrackerPage({ currency = 'USD' }) {
               const hasPriceData = game.price_change_percentage !== null;
 
               return (
-                <tr key={game.id} className="dashboard-row">
+                <tr
+                  key={game.id}
+                  className="dashboard-row"
+                  onClick={() => navigate(`/game/${game.id}`)}
+                >
                   <td className="game-info-cell">
                     <div className="game-info-container">
                       {game.igdb_cover_url ? (
@@ -212,10 +216,7 @@ export default function PriceTrackerPage({ currency = 'USD' }) {
                         <div className="game-thumbnail-placeholder">🎮</div>
                       )}
                       <div className="game-text-info">
-                        <div
-                          className="game-name game-name-clickable"
-                          onClick={() => navigate(`/game/${game.id}`)}
-                        >
+                        <div className="game-name">
                           {game.name}
                         </div>
                         <div className="game-platform">{game.platform}</div>
@@ -262,7 +263,10 @@ export default function PriceTrackerPage({ currency = 'USD' }) {
                   </td>
                   <td className="actions-cell">
                     <button
-                      onClick={() => setSelectedGame(game)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedGame(game);
+                      }}
                       className="btn-link"
                     >
                       View History
