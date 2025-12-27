@@ -10,6 +10,8 @@ export default function PriceTrackerPage({ currency = 'USD' }) {
   const [error, setError] = useState(null);
   const [selectedGame, setSelectedGame] = useState(null);
   const [sortBy, setSortBy] = useState('last_refresh');
+  const [sortColumn, setSortColumn] = useState(null);
+  const [sortDirection, setSortDirection] = useState('asc');
 
   useEffect(() => {
     fetchDashboard();
@@ -34,25 +36,57 @@ export default function PriceTrackerPage({ currency = 'USD' }) {
 
     const games = [...dashboard.games];
 
-    switch (sortBy) {
-      case 'last_refresh':
-        return games.sort((a, b) => {
-          if (!a.last_refresh_at && !b.last_refresh_at) return 0;
-          if (!a.last_refresh_at) return 1;
-          if (!b.last_refresh_at) return -1;
-          return new Date(b.last_refresh_at) - new Date(a.last_refresh_at);
-        });
-      case 'name':
-        return games.sort((a, b) => a.name.localeCompare(b.name));
-      case 'price_change':
-        return games.sort((a, b) => {
-          const changeA = a.price_change_percentage || 0;
-          const changeB = b.price_change_percentage || 0;
-          return changeB - changeA;
-        });
-      default:
-        return games;
-    }
+    // Sort - prioritize column sorting over dropdown sorting
+    games.sort((a, b) => {
+      let comparison = 0;
+
+      if (sortColumn) {
+        // Column header sorting takes priority
+        switch (sortColumn) {
+          case 'name':
+            comparison = a.name.localeCompare(b.name);
+            break;
+          case 'last_refresh':
+            if (!a.last_refresh_at && !b.last_refresh_at) comparison = 0;
+            else if (!a.last_refresh_at) comparison = 1;
+            else if (!b.last_refresh_at) comparison = -1;
+            else comparison = new Date(a.last_refresh_at) - new Date(b.last_refresh_at);
+            break;
+          case 'market_value':
+            comparison = (a.market_value || 0) - (b.market_value || 0);
+            break;
+          case 'price_change':
+            const changeA = a.price_change_percentage || 0;
+            const changeB = b.price_change_percentage || 0;
+            comparison = changeA - changeB;
+            break;
+          default:
+            comparison = 0;
+        }
+
+        // Apply sort direction
+        return sortDirection === 'asc' ? comparison : -comparison;
+      } else {
+        // Fallback to dropdown sorting
+        switch (sortBy) {
+          case 'last_refresh':
+            if (!a.last_refresh_at && !b.last_refresh_at) return 0;
+            if (!a.last_refresh_at) return 1;
+            if (!b.last_refresh_at) return -1;
+            return new Date(b.last_refresh_at) - new Date(a.last_refresh_at);
+          case 'name':
+            return a.name.localeCompare(b.name);
+          case 'price_change':
+            const changeA = a.price_change_percentage || 0;
+            const changeB = b.price_change_percentage || 0;
+            return changeB - changeA;
+          default:
+            return 0;
+        }
+      }
+    });
+
+    return games;
   };
 
   const getRefreshStatus = (game) => {
@@ -71,6 +105,22 @@ export default function PriceTrackerPage({ currency = 'USD' }) {
     } else {
       return { text: 'Needs update', class: 'status-warning' };
     }
+  };
+
+  const handleColumnSort = (column) => {
+    if (sortColumn === column) {
+      // Toggle direction if clicking the same column
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      // New column, default to ascending
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
+
+  const getSortIndicator = (column) => {
+    if (sortColumn !== column) return null;
+    return sortDirection === 'asc' ? ' ▲' : ' ▼';
   };
 
   if (loading) {
@@ -118,10 +168,30 @@ export default function PriceTrackerPage({ currency = 'USD' }) {
         <table className="dashboard-table">
           <thead>
             <tr>
-              <th>Game</th>
-              <th>Last Updated</th>
-              <th>Current Value</th>
-              <th>Price Change</th>
+              <th
+                className={`sortable ${sortColumn === 'name' ? 'active' : ''}`}
+                onClick={() => handleColumnSort('name')}
+              >
+                Game{getSortIndicator('name')}
+              </th>
+              <th
+                className={`sortable ${sortColumn === 'last_refresh' ? 'active' : ''}`}
+                onClick={() => handleColumnSort('last_refresh')}
+              >
+                Last Updated{getSortIndicator('last_refresh')}
+              </th>
+              <th
+                className={`sortable ${sortColumn === 'market_value' ? 'active' : ''}`}
+                onClick={() => handleColumnSort('market_value')}
+              >
+                Current Value{getSortIndicator('market_value')}
+              </th>
+              <th
+                className={`sortable ${sortColumn === 'price_change' ? 'active' : ''}`}
+                onClick={() => handleColumnSort('price_change')}
+              >
+                Price Change{getSortIndicator('price_change')}
+              </th>
               <th>Actions</th>
             </tr>
           </thead>
