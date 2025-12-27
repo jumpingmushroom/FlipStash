@@ -480,8 +480,12 @@ async function scrapePriceChartingGeneralSearch(gameName, platform, condition = 
         return results;
       }
 
+      // Get the expected console slug for more reliable matching
+      const consoleSlug = getPriceChartingConsoleUrl(platform, region);
+      const expectedSlug = consoleSlug ? consoleSlug.replace('/console/', '') : null;
+
       // Click on the first result that matches our platform AND region
-      const clickedResult = await page.evaluate((regionPrefix, platformName) => {
+      const clickedResult = await page.evaluate((regionPrefix, platformName, expectedSlug) => {
         // Find the results table
         let table = document.querySelector('table.table.table-striped, table#games_table');
         if (!table) {
@@ -506,12 +510,7 @@ async function scrapePriceChartingGeneralSearch(gameName, platform, condition = 
           rows = table.querySelectorAll('tr');
         }
 
-        // Normalize platform name for matching
-        const platformKeywords = platformName.toLowerCase().split(' ').filter(word =>
-          !['the', 'a', 'an'].includes(word)
-        );
-
-        console.log(`Looking for platform: ${platformName}, region: ${regionPrefix}`);
+        console.log(`Looking for platform: ${platformName}, region: ${regionPrefix}, expected slug: ${expectedSlug}`);
 
         for (const row of rows) {
           const link = row.querySelector('a[href*="/game/"]');
@@ -520,27 +519,51 @@ async function scrapePriceChartingGeneralSearch(gameName, platform, condition = 
           const rowText = row.textContent.toLowerCase();
           const href = link.href.toLowerCase();
 
-          console.log(`Checking row: ${rowText.substring(0, 100)}, href: ${href}`);
+          console.log(`Checking row href: ${href}`);
 
-          // First, check if platform matches
-          let platformMatches = false;
+          // FIRST PRIORITY: Check if href contains the expected console slug (most reliable)
+          if (expectedSlug) {
+            const slugLower = expectedSlug.toLowerCase();
+            if (href.includes(`/game/${slugLower}/`)) {
+              console.log(`Found exact match with expected slug: ${slugLower}`);
+              link.click();
+              return true;
+            }
+          }
+        }
 
-          // Check if any platform keyword is in the row text or href
+        // SECOND PRIORITY: If no exact slug match, try platform + region matching
+        // Normalize platform name for matching
+        const platformKeywords = platformName.toLowerCase().split(' ').filter(word =>
+          !['the', 'a', 'an'].includes(word)
+        );
+
+        console.log('No exact slug match found, trying platform keyword matching');
+
+        for (const row of rows) {
+          const link = row.querySelector('a[href*="/game/"]');
+          if (!link) continue;
+
+          const rowText = row.textContent.toLowerCase();
+          const href = link.href.toLowerCase();
+
+          // Check if platform matches - require ALL keywords to be present
+          let platformMatches = true;
           for (const keyword of platformKeywords) {
-            if (rowText.includes(keyword) || href.includes(keyword)) {
-              platformMatches = true;
+            if (!rowText.includes(keyword) && !href.includes(keyword)) {
+              platformMatches = false;
               break;
             }
           }
 
           if (!platformMatches) {
-            console.log(`Platform mismatch, skipping`);
             continue;
           }
 
+          console.log(`Platform keywords match for href: ${href}`);
+
           // If platform matches, now check region
           if (regionPrefix) {
-            const regionLower = regionPrefix.toLowerCase();
             if (regionPrefix === 'PAL' && (href.includes('pal') || rowText.includes('pal'))) {
               console.log(`Found match with PAL region and correct platform`);
               link.click();
@@ -572,13 +595,14 @@ async function scrapePriceChartingGeneralSearch(gameName, platform, condition = 
         if (table) {
           const firstLink = table.querySelector('a[href*="/game/"]');
           if (firstLink) {
+            console.log(`Clicking first result as fallback: ${firstLink.href}`);
             firstLink.click();
             return true;
           }
         }
 
         return false;
-      }, regionPrefix, platform);
+      }, regionPrefix, platform, expectedSlug);
 
       if (clickedResult) {
         console.log('Clicked on search result, waiting for navigation...');
