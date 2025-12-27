@@ -180,6 +180,19 @@ function GameDetailPage({ onGamesUpdate }) {
     }
   };
 
+  const handleResetMarketValue = async () => {
+    if (!window.confirm('Reset market value? This will clear all market value data and price sources. You will need to refresh market value again to set new values.')) return;
+
+    try {
+      await gamesApi.resetMarketValue(id);
+      loadGame();
+      alert('Market value has been reset successfully!');
+    } catch (err) {
+      alert('Failed to reset market value');
+      console.error(err);
+    }
+  };
+
   const calculateProfit = () => {
     if (game.sold_value && game.purchase_value) {
       const soldInUSD = convertCurrency(game.sold_value, game.sold_value_currency || 'USD', 'USD');
@@ -408,9 +421,16 @@ function GameDetailPage({ onGamesUpdate }) {
             </div>
 
             {!isSold && (
-              <button onClick={handleRefreshMarket} className="btn btn-primary" style={{ marginTop: '1rem', width: '100%' }}>
-                Refresh Market Value
-              </button>
+              <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <button onClick={handleRefreshMarket} className="btn btn-primary" style={{ width: '100%' }}>
+                  Refresh Market Value
+                </button>
+                {game.market_value !== null && (
+                  <button onClick={handleResetMarketValue} className="btn btn-secondary" style={{ width: '100%' }}>
+                    Reset Market Value
+                  </button>
+                )}
+              </div>
             )}
           </div>
 

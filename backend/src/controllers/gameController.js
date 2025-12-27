@@ -1522,6 +1522,31 @@ export async function savePriceSources(req, res) {
 }
 
 /**
+ * Reset market value and all related pricing data to null
+ * Returns the game to its pre-scraped state
+ */
+export async function resetMarketValue(req, res) {
+  try {
+    const game = statements.getGameById.get(req.params.id);
+    if (!game) {
+      return res.status(404).json({ error: 'Game not found' });
+    }
+
+    // Reset all market value related fields
+    statements.resetMarketValue.run(req.params.id);
+
+    const updatedGame = statements.getGameById.get(req.params.id);
+    res.json({
+      game: updatedGame,
+      message: 'Market value data has been reset'
+    });
+  } catch (error) {
+    console.error('Error resetting market value:', error);
+    res.status(500).json({ error: 'Failed to reset market value' });
+  }
+}
+
+/**
  * Refresh market value from a specific PriceCharting URL
  * Used when user selects from multiple search results
  * @deprecated Use savePriceSources instead
