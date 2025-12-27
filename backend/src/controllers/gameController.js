@@ -791,7 +791,8 @@ export async function exportToCSV(req, res) {
       'condition', 'notes', 'igdb_id', 'igdb_cover_url', 'igdb_release_date',
       'purchase_value_currency', 'market_value_currency',
       'selling_value_currency', 'sold_value_currency', 'posted_online',
-      'acquisition_source', 'created_at', 'updated_at', 'last_refresh_at'
+      'acquisition_source', 'pricecharting_url', 'finn_url', 'price_source',
+      'created_at', 'updated_at', 'last_refresh_at'
     ];
 
     // Convert games to CSV format
@@ -991,7 +992,10 @@ export async function importFromCSV(req, res) {
           selling_value_currency: record.selling_value_currency || defaultCurrency || 'USD',
           sold_value_currency: record.sold_value_currency || defaultCurrency || 'USD',
           posted_online: record.posted_online === '1' || record.posted_online === 'true' ? 1 : 0,
-          acquisition_source: record.acquisition_source || null
+          acquisition_source: record.acquisition_source || null,
+          pricecharting_url: record.pricecharting_url || null,
+          finn_url: record.finn_url || null,
+          price_source: record.price_source || null
         };
 
         if (duplicate && mode === 'update') {
@@ -1022,6 +1026,9 @@ export async function importFromCSV(req, res) {
             gameData.igdb_genres,
             gameData.igdb_rating,
             gameData.igdb_url,
+            gameData.pricecharting_url,
+            gameData.finn_url,
+            gameData.price_source,
             duplicate.id
           );
           results.updated++;
@@ -1052,7 +1059,10 @@ export async function importFromCSV(req, res) {
             gameData.igdb_summary,
             gameData.igdb_genres,
             gameData.igdb_rating,
-            gameData.igdb_url
+            gameData.igdb_url,
+            gameData.pricecharting_url,
+            gameData.finn_url,
+            gameData.price_source
           );
 
           // Record price history if market value is provided
@@ -1275,12 +1285,27 @@ export async function batchRefreshMarketValues(req, res) {
           );
         }
         if (game.finn_url) {
-          fetchPromises.push(
-            getPriceFromUrl(game.finn_url, game.condition).then(data => ({
-              source: 'finnno',
-              data
-            }))
-          );
+          // Check if this is a Finn.no search URL (median) or an individual listing URL
+          if (game.finn_url.includes('/search?')) {
+            // This is a search URL - re-scrape to get median
+            fetchPromises.push(
+              scrapeFinnNo(game.name, game.platform, false).then(medianPrice => ({
+                source: 'finnno',
+                data: {
+                  market_value: medianPrice,
+                  currency: 'NOK'
+                }
+              }))
+            );
+          } else {
+            // Individual listing URL
+            fetchPromises.push(
+              getPriceFromUrl(game.finn_url, game.condition).then(data => ({
+                source: 'finnno',
+                data
+              }))
+            );
+          }
         }
 
         const fetchResults = await Promise.all(fetchPromises);
@@ -1705,12 +1730,27 @@ export async function batchRefreshMarketValuesSSE(req, res) {
           );
         }
         if (game.finn_url) {
-          fetchPromises.push(
-            getPriceFromUrl(game.finn_url, game.condition).then(data => ({
-              source: 'finnno',
-              data
-            }))
-          );
+          // Check if this is a Finn.no search URL (median) or an individual listing URL
+          if (game.finn_url.includes('/search?')) {
+            // This is a search URL - re-scrape to get median
+            fetchPromises.push(
+              scrapeFinnNo(game.name, game.platform, false).then(medianPrice => ({
+                source: 'finnno',
+                data: {
+                  market_value: medianPrice,
+                  currency: 'NOK'
+                }
+              }))
+            );
+          } else {
+            // Individual listing URL
+            fetchPromises.push(
+              getPriceFromUrl(game.finn_url, game.condition).then(data => ({
+                source: 'finnno',
+                data
+              }))
+            );
+          }
         }
 
         const fetchResults = await Promise.all(fetchPromises);
