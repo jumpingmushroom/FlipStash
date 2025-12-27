@@ -97,6 +97,16 @@
   font-weight: 500;
 }
 
+.game-name-clickable {
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.game-name-clickable:hover {
+  color: var(--primary-color);
+  text-decoration: underline;
+}
+
 .game-platform {
   color: var(--text-secondary);
   font-size: 0.9rem;

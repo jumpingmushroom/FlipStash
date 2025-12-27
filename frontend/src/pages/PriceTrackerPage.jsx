@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import PriceChart from '../components/PriceChart';
 import { convertCurrency, formatCurrency } from '../services/currency';
 import './PriceTrackerPage.css';
 
 export default function PriceTrackerPage({ currency = 'USD' }) {
+  const navigate = useNavigate();
   const [dashboard, setDashboard] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -210,7 +212,12 @@ export default function PriceTrackerPage({ currency = 'USD' }) {
                         <div className="game-thumbnail-placeholder">🎮</div>
                       )}
                       <div className="game-text-info">
-                        <div className="game-name">{game.name}</div>
+                        <div
+                          className="game-name game-name-clickable"
+                          onClick={() => navigate(`/game/${game.id}`)}
+                        >
+                          {game.name}
+                        </div>
                         <div className="game-platform">{game.platform}</div>
                       </div>
                     </div>
